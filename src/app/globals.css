@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+/* === Light Mode (Default) === */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --secondary: #6b7280;
+  --card-bg: #f9fafb;
+  --card-border: #e5e7eb;
+  --input-bg: #f3f4f6;
+  --input-border: #d1d5db;
+  --border-radius: 16px;
+  --transition-speed: 0.3s;
+}
+
+/* === Dark Mode === */
+[data-theme="dark"] {
+  --background: #0f0f14;
+  --foreground: #f0f0f5;
+  --primary: #818cf8;
+  --primary-light: #a5b4fc;
+  --secondary: #9ca3af;
+  --card-bg: #1a1a24;
+  --card-border: #2a2a3a;
+  --input-bg: #1e1e2e;
+  --input-border: #3a3a4a;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Mobile-first input styles */
+.input-field {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  border-radius: 12px;
+  color: var(--foreground);
+  font-size: 16px; /* prevents iOS zoom */
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.input-field:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.input-field::placeholder {
+  color: var(--secondary);
+  opacity: 0.7;
+}
+
+/* Swipe container */
+.swipe-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 0;
+}
+
+.swipe-container::-webkit-scrollbar {
+  display: none;
+}
+
+.swipe-card {
+  scroll-snap-align: center;
+  flex-shrink: 0;
+  width: 85vw;
+  max-width: 380px;
+}
+
+/* Bottom nav safe area */
+.bottom-nav-spacer {
+  height: calc(70px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Smooth page transitions */
+.page-enter {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Progress dots for swipe */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--input-border);
+  transition: all 0.3s;
+}
+
+.dot.active {
+  width: 24px;
+  border-radius: 4px;
+  background: var(--primary);
+}
