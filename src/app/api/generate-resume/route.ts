@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
 
     const buffer = await getStream.buffer(stream);
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${fullName.replace(/[^a-zA-Z0-9]/g, "_")}_resume.pdf"`,
