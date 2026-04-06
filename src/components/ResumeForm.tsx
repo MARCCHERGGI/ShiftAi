@@ -1,6 +1,8 @@
 "use client";
-import { useState } from "react";
-import { Download, Wand2, ChevronRight, ChevronLeft } from "lucide-react";
+
+import { useState, useEffect } from "react";
+import { Download, ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
+import { getResearch } from "@/src/lib/research-store";
 
 const steps = [
   { title: "Personal Info", fields: ["fullName", "email", "phone"] },
@@ -8,45 +10,117 @@ const steps = [
   { title: "Your Experience", fields: ["summary", "skills", "experience"] },
 ];
 
-const fieldConfig: Record<string, { label: string; placeholder: string; type: "input" | "textarea" | "email" | "tel" }> = {
+const fieldConfig: Record<
+  string,
+  {
+    label: string;
+    placeholder: string;
+    type: "input" | "textarea" | "email" | "tel";
+  }
+> = {
   fullName: { label: "Full Name", placeholder: "John Doe", type: "input" },
   email: { label: "Email", placeholder: "john@email.com", type: "email" },
   phone: { label: "Phone", placeholder: "(555) 123-4567", type: "tel" },
-  position: { label: "Position", placeholder: "Bartender, Server, Chef...", type: "input" },
-  jobListing: { label: "Job Listing", placeholder: "Paste the job listing here...", type: "textarea" },
-  summary: { label: "About You", placeholder: "Brief summary about yourself...", type: "textarea" },
-  skills: { label: "Skills", placeholder: "Mixology, POS systems, customer service...", type: "input" },
-  experience: { label: "Experience", placeholder: "Last job title, company, what you did...", type: "textarea" },
+  position: {
+    label: "Position",
+    placeholder: "Bartender, Server, Chef...",
+    type: "input",
+  },
+  jobListing: {
+    label: "Job Listing",
+    placeholder: "Paste the job listing here...",
+    type: "textarea",
+  },
+  summary: {
+    label: "About You",
+    placeholder: "Brief summary about yourself...",
+    type: "textarea",
+  },
+  skills: {
+    label: "Skills",
+    placeholder: "Mixology, POS systems, customer service...",
+    type: "input",
+  },
+  experience: {
+    label: "Experience",
+    placeholder: "Last job title, company, what you did...",
+    type: "textarea",
+  },
 };
 
 export default function ResumeForm() {
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<Record<string, string>>({
-    fullName: "", email: "", phone: "",
-    position: "", jobListing: "",
-    summary: "", skills: "", experience: "",
+    fullName: "",
+    email: "",
+    phone: "",
+    position: "",
+    jobListing: "",
+    summary: "",
+    skills: "",
+    experience: "",
   });
   const [loading, setLoading] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
+  const [hasResearch, setHasResearch] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  useEffect(() => {
+    const research = getResearch();
+    if (research) {
+      setHasResearch(true);
+      setFormData((prev) => ({
+        ...prev,
+        position: research.job.title || prev.position,
+        jobListing: research.rawListing || prev.jobListing,
+      }));
+    }
+  }, []);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAutofill = async () => {
-    setLoading(true);
+  const handleEnhance = async () => {
+    setEnhancing(true);
     try {
-      const res = await fetch("/api/autofill-resume", {
+      const research = getResearch();
+      if (!research) throw new Error("No research data");
+
+      const res = await fetch("/api/resume/enhance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobListing: formData.jobListing }),
+        body: JSON.stringify({
+          userInfo: {
+            fullName: formData.fullName,
+            email: formData.email,
+            phone: formData.phone,
+            experience: formData.experience,
+            skills: formData.skills,
+            summary: formData.summary,
+          },
+          job: research.job,
+          venue: research.venue,
+        }),
       });
-      const data = await res.json();
-      setFormData((prev) => ({ ...prev, ...data.filled }));
+
+      if (!res.ok) throw new Error("Enhancement failed");
+      const enhanced = await res.json();
+
+      setFormData((prev) => ({
+        ...prev,
+        summary: enhanced.summary || prev.summary,
+        skills: enhanced.skills || prev.skills,
+        experience: enhanced.experience || prev.experience,
+      }));
+
+      setStep(2);
     } catch (err) {
-      console.error("Autofill failed", err);
+      console.error("Enhancement failed", err);
     }
-    setLoading(false);
+    setEnhancing(false);
   };
 
   const handleSubmit = async () => {
@@ -61,7 +135,7 @@ export default function ResumeForm() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "resume.pdf";
+      link.download = `${formData.fullName || "resume"}_ShiftAI.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -94,7 +168,10 @@ export default function ResumeForm() {
             {i < steps.length - 1 && (
               <div
                 className="w-12 sm:w-20 h-0.5 mx-1"
-                style={{ background: i < step ? "var(--primary)" : "var(--input-border)" }}
+                style={{
+                  background:
+                    i < step ? "var(--primary)" : "var(--input-border)",
+                }}
               />
             )}
           </div>
@@ -102,7 +179,10 @@ export default function ResumeForm() {
       </div>
 
       {/* Step Title */}
-      <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--foreground)" }}>
+      <h2
+        className="text-lg font-semibold mb-4"
+        style={{ color: "var(--foreground)" }}
+      >
         {currentStep.title}
       </h2>
 
@@ -112,7 +192,10 @@ export default function ResumeForm() {
           const config = fieldConfig[field];
           return (
             <div key={field}>
-              <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--secondary)" }}>
+              <label
+                className="text-xs font-medium mb-1.5 block"
+                style={{ color: "var(--secondary)" }}
+              >
                 {config.label}
               </label>
               {config.type === "textarea" ? (
@@ -126,7 +209,13 @@ export default function ResumeForm() {
                 />
               ) : (
                 <input
-                  type={config.type === "email" ? "email" : config.type === "tel" ? "tel" : "text"}
+                  type={
+                    config.type === "email"
+                      ? "email"
+                      : config.type === "tel"
+                        ? "tel"
+                        : "text"
+                  }
                   name={field}
                   value={formData[field]}
                   onChange={handleChange}
@@ -139,16 +228,20 @@ export default function ResumeForm() {
         })}
       </div>
 
-      {/* Autofill button on job details step */}
-      {step === 1 && formData.jobListing.trim() && (
+      {/* AI Enhance — on experience step when research exists */}
+      {step === 2 && hasResearch && (
         <button
-          onClick={handleAutofill}
-          disabled={loading}
-          className="mt-3 w-full py-3 rounded-2xl font-medium text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-          style={{ background: "rgba(99, 102, 241, 0.1)", color: "var(--primary)" }}
+          onClick={handleEnhance}
+          disabled={enhancing || !formData.summary.trim()}
+          className="mt-3 w-full py-3 rounded-2xl font-medium text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-40"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15))",
+            color: "var(--primary)",
+          }}
         >
-          <Wand2 className="w-4 h-4" />
-          AI Autofill from Listing
+          <Sparkles className="w-4 h-4" />
+          {enhancing ? "AI Enhancing..." : "AI Enhance for This Job"}
         </button>
       )}
 
@@ -158,7 +251,11 @@ export default function ResumeForm() {
           <button
             onClick={() => setStep(step - 1)}
             className="flex-1 py-4 rounded-2xl font-semibold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-            style={{ background: "var(--card-bg)", border: "1.5px solid var(--card-border)", color: "var(--foreground)" }}
+            style={{
+              background: "var(--card-bg)",
+              border: "1.5px solid var(--card-border)",
+              color: "var(--foreground)",
+            }}
           >
             <ChevronLeft className="w-4 h-4" />
             Back

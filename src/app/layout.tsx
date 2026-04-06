@@ -26,10 +26,10 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "ShiftAI - Land Your Dream Restaurant Job",
-  description: "AI-powered resume builder and mock interview coach for restaurant jobs.",
-  keywords: "AI Interview Coach, Restaurant Jobs, AI Resume Builder",
-  authors: [{ name: "ShiftAI Team" }],
+  title: "ShiftAI - Land Your Dream Bartender Job",
+  description: "AI agents that research job listings, profile restaurants, analyze locations, coach interviews, and build tailored resumes for bartenders.",
+  keywords: "AI Interview Coach, Bartender Jobs, AI Resume Builder, Restaurant Jobs, Job Research",
+  authors: [{ name: "ShiftAI" }],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

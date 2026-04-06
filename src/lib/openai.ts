@@ -1,25 +1,40 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY,
-});
+let _client: OpenAI | null = null;
 
-export async function getAIResponse(prompt: string) {
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "You are an AI interview coach." },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 300,
+function getClient(): OpenAI {
+  if (!_client) {
+    _client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || "missing",
     });
-
-    return response.choices[0]?.message?.content || "Sorry, I couldn't generate a response.";
-  } catch (error) {
-    console.error("Error fetching AI response:", error);
-    return "An error occurred. Please try again.";
   }
+  return _client;
 }
 
+export async function agentCall(
+  systemPrompt: string,
+  userPrompt: string,
+  options?: {
+    model?: string;
+    maxTokens?: number;
+    temperature?: number;
+    jsonMode?: boolean;
+  }
+): Promise<string> {
+  const response = await getClient().chat.completions.create({
+    model: options?.model || "gpt-4o-mini",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    max_tokens: options?.maxTokens || 2000,
+    temperature: options?.temperature || 0.7,
+    ...(options?.jsonMode ? { response_format: { type: "json_object" } } : {}),
+  });
+
+  return response.choices[0]?.message?.content || "{}";
+}
+
+export async function getAIResponse(prompt: string) {
+  return agentCall("You are an AI interview coach.", prompt, { maxTokens: 300 });
+}
