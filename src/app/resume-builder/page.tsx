@@ -3,16 +3,20 @@ import ResumeForm from "@/src/components/ResumeForm";
 
 export default function ResumeBuilderPage() {
   return (
-    <div className="page-enter px-5 max-w-lg mx-auto">
-      <div className="pt-6 pb-4">
-        <h1 className="text-2xl font-bold" style={{ color: "var(--foreground)" }}>
-          Resume Builder
+    <div className="fade-in px-5 max-w-lg mx-auto">
+      <div className="pt-8 pb-6">
+        <h1 className="display">
+          Build your<br />resume.
         </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--secondary)" }}>
-          Fill in your details and AI will generate a polished PDF
+        <p
+          className="mt-3 text-sm leading-relaxed"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          Fill in your details. AI generates a polished PDF tailored to the position.
         </p>
       </div>
       <ResumeForm />
+      <div className="h-6" />
     </div>
   );
 }

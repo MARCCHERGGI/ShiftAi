@@ -2,222 +2,109 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { RotateCcw, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { RotateCcw, Search, ChevronDown, ChevronUp } from "lucide-react";
 import { getInterviewResults } from "@/src/lib/research-store";
 import type { InterviewResult } from "@/src/lib/types";
 
 export default function FeedbackPage() {
   const router = useRouter();
   const [results, setResults] = useState<InterviewResult[]>([]);
-  const [overallScore, setOverallScore] = useState(0);
+  const [score, setScore] = useState(0);
   const [expandedQ, setExpandedQ] = useState<number | null>(null);
-  const [allStrengths, setAllStrengths] = useState<string[]>([]);
-  const [allImprovements, setAllImprovements] = useState<string[]>([]);
+  const [strengths, setStrengths] = useState<string[]>([]);
+  const [improvements, setImprovements] = useState<string[]>([]);
 
   useEffect(() => {
     const saved = getInterviewResults();
     if (saved && saved.length > 0) {
       setResults(saved);
-      const avg = Math.round(
-        (saved.reduce((sum, r) => sum + (r.evaluation?.score || 0), 0) /
-          saved.length) *
-          10
-      );
-      setOverallScore(avg);
-
-      const strengths = new Set<string>();
-      const improvements = new Set<string>();
+      setScore(Math.round((saved.reduce((s, r) => s + (r.evaluation?.score || 0), 0) / saved.length) * 10));
+      const str = new Set<string>();
+      const imp = new Set<string>();
       saved.forEach((r) => {
-        r.evaluation?.strengths?.forEach((s) => strengths.add(s));
-        r.evaluation?.improvements?.forEach((imp) => improvements.add(imp));
+        r.evaluation?.strengths?.forEach((s) => str.add(s));
+        r.evaluation?.improvements?.forEach((i) => imp.add(i));
       });
-      setAllStrengths(Array.from(strengths).slice(0, 5));
-      setAllImprovements(Array.from(improvements).slice(0, 5));
+      setStrengths(Array.from(str).slice(0, 4));
+      setImprovements(Array.from(imp).slice(0, 4));
     } else {
-      setOverallScore(70);
-      setAllStrengths([
-        "Showed enthusiasm",
-        "Good communication",
-        "Willing to learn",
-      ]);
-      setAllImprovements([
-        "Add specific examples",
-        "Research the venue beforehand",
-        "Practice the STAR method",
-      ]);
+      setScore(70);
+      setStrengths(["Good communication", "Showed enthusiasm"]);
+      setImprovements(["Add specific examples", "Research the venue"]);
     }
   }, []);
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "#10b981";
-    if (score >= 60) return "#f59e0b";
-    return "#ef4444";
-  };
+  const scoreColor = score >= 80 ? "var(--success)" : score >= 60 ? "var(--accent)" : "var(--danger)";
 
   return (
-    <div className="page-enter px-5 max-w-lg mx-auto">
-      <div className="pt-6 pb-4 text-center">
-        <h1
-          className="text-2xl font-bold"
-          style={{ color: "var(--foreground)" }}
-        >
-          Your Results
-        </h1>
+    <div className="fade-in px-5 max-w-lg mx-auto">
+      {/* Score */}
+      <div className="pt-10 pb-8 text-center">
+        <p className="label mb-3">Overall score</p>
+        <p className="text-6xl font-bold tabular-nums" style={{ color: scoreColor, letterSpacing: "-0.04em" }}>
+          {score}
+        </p>
+        <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>out of 100</p>
         {results.length > 0 && (
-          <p className="text-sm mt-1" style={{ color: "var(--secondary)" }}>
+          <p className="text-xs mt-3" style={{ color: "var(--text-tertiary)" }}>
             {results.length} questions completed
           </p>
         )}
       </div>
 
-      {/* Score Circle */}
-      <div className="flex justify-center py-6">
-        <div
-          className="w-32 h-32 rounded-full flex flex-col items-center justify-center"
-          style={{
-            border: `4px solid ${getScoreColor(overallScore)}`,
-            background: `${getScoreColor(overallScore)}10`,
-          }}
-        >
-          <span
-            className="text-3xl font-bold"
-            style={{ color: getScoreColor(overallScore) }}
-          >
-            {overallScore}
-          </span>
-          <span className="text-xs" style={{ color: "var(--secondary)" }}>
-            out of 100
-          </span>
-        </div>
-      </div>
-
       {/* Strengths */}
-      <div
-        className="rounded-2xl p-4 mb-3"
-        style={{
-          background: "var(--card-bg)",
-          border: "1px solid var(--card-border)",
-        }}
-      >
-        <h3 className="text-sm font-semibold flex items-center gap-2 mb-3 text-emerald-500">
-          <CheckCircle className="w-4 h-4" />
-          Strengths
-        </h3>
-        <div className="space-y-2">
-          {allStrengths.map((s, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-3 py-2 px-3 rounded-xl"
-              style={{ background: "rgba(16, 185, 129, 0.06)" }}
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
-              <p className="text-sm" style={{ color: "var(--foreground)" }}>
-                {s}
-              </p>
-            </div>
-          ))}
-        </div>
+      <div style={{ borderTop: "1px solid var(--border)" }} className="py-4">
+        <p className="label mb-3" style={{ color: "var(--success)" }}>Strengths</p>
+        {strengths.map((s, i) => (
+          <p key={i} className="text-sm py-1" style={{ color: "var(--text-secondary)" }}>
+            &check; {s}
+          </p>
+        ))}
       </div>
 
-      {/* Areas to Improve */}
-      <div
-        className="rounded-2xl p-4 mb-3"
-        style={{
-          background: "var(--card-bg)",
-          border: "1px solid var(--card-border)",
-        }}
-      >
-        <h3 className="text-sm font-semibold flex items-center gap-2 mb-3 text-amber-500">
-          <AlertTriangle className="w-4 h-4" />
-          Areas to Improve
-        </h3>
-        <div className="space-y-2">
-          {allImprovements.map((a, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-3 py-2 px-3 rounded-xl"
-              style={{ background: "rgba(245, 158, 11, 0.06)" }}
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
-              <p className="text-sm" style={{ color: "var(--foreground)" }}>
-                {a}
-              </p>
-            </div>
-          ))}
-        </div>
+      {/* Improvements */}
+      <div style={{ borderTop: "1px solid var(--border)" }} className="py-4">
+        <p className="label mb-3" style={{ color: "var(--accent)" }}>Areas to improve</p>
+        {improvements.map((m, i) => (
+          <p key={i} className="text-sm py-1" style={{ color: "var(--text-secondary)" }}>
+            &rarr; {m}
+          </p>
+        ))}
       </div>
 
-      {/* Per-Question Breakdown */}
+      {/* Breakdown */}
       {results.length > 0 && (
-        <div
-          className="rounded-2xl p-4 mb-6"
-          style={{
-            background: "var(--card-bg)",
-            border: "1px solid var(--card-border)",
-          }}
-        >
-          <h3
-            className="text-sm font-semibold mb-3"
-            style={{ color: "var(--foreground)" }}
-          >
-            Question Breakdown
-          </h3>
-          <div className="space-y-2">
+        <div style={{ borderTop: "1px solid var(--border)" }} className="py-4">
+          <p className="label mb-3">Question breakdown</p>
+          <div className="space-y-1">
             {results.map((r, i) => (
               <div key={i}>
                 <button
-                  onClick={() =>
-                    setExpandedQ(expandedQ === i ? null : i)
-                  }
-                  className="w-full flex items-center justify-between py-2 px-3 rounded-xl text-left"
-                  style={{ background: "var(--input-bg)" }}
+                  onClick={() => setExpandedQ(expandedQ === i ? null : i)}
+                  className="w-full flex items-center gap-2.5 py-2 text-left"
                 >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span
-                      className="text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{
-                        background: `${getScoreColor(r.evaluation.score * 10)}15`,
-                        color: getScoreColor(r.evaluation.score * 10),
-                      }}
-                    >
-                      {r.evaluation.score}
-                    </span>
-                    <span
-                      className="text-xs truncate"
-                      style={{ color: "var(--foreground)" }}
-                    >
-                      Q{i + 1}: {r.question}
-                    </span>
-                  </div>
+                  <span
+                    className="text-xs font-bold w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 tabular-nums"
+                    style={{
+                      background: r.evaluation.score >= 7 ? "var(--success-dim)" : r.evaluation.score >= 5 ? "var(--accent-dim)" : "var(--danger-dim)",
+                      color: r.evaluation.score >= 7 ? "var(--success)" : r.evaluation.score >= 5 ? "var(--accent)" : "var(--danger)",
+                    }}
+                  >
+                    {r.evaluation.score}
+                  </span>
+                  <span className="text-xs flex-1 truncate" style={{ color: "var(--text-secondary)" }}>
+                    {r.question}
+                  </span>
                   {expandedQ === i ? (
-                    <ChevronUp
-                      className="w-3 h-3 flex-shrink-0"
-                      style={{ color: "var(--secondary)" }}
-                    />
+                    <ChevronUp className="w-3 h-3 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
                   ) : (
-                    <ChevronDown
-                      className="w-3 h-3 flex-shrink-0"
-                      style={{ color: "var(--secondary)" }}
-                    />
+                    <ChevronDown className="w-3 h-3 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
                   )}
                 </button>
                 {expandedQ === i && (
-                  <div
-                    className="mt-1 px-3 py-2 text-xs space-y-1"
-                    style={{ color: "var(--secondary)" }}
-                  >
-                    <p>
-                      <strong style={{ color: "var(--foreground)" }}>
-                        Your answer:
-                      </strong>{" "}
-                      {r.answer}
-                    </p>
-                    <p>
-                      <strong style={{ color: "var(--foreground)" }}>
-                        Verdict:
-                      </strong>{" "}
-                      {r.evaluation.verdict}
-                    </p>
+                  <div className="pl-8 pb-3 text-xs space-y-1" style={{ color: "var(--text-tertiary)" }}>
+                    <p><span style={{ color: "var(--text-secondary)" }}>You said:</span> {r.answer}</p>
+                    <p><span style={{ color: "var(--text-secondary)" }}>Verdict:</span> {r.evaluation.verdict}</p>
                   </div>
                 )}
               </div>
@@ -227,24 +114,12 @@ export default function FeedbackPage() {
       )}
 
       {/* Actions */}
-      <div className="flex gap-3 pb-4">
-        <button
-          onClick={() => router.push("/interview")}
-          className="flex-1 py-4 rounded-2xl font-semibold text-white text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-          style={{ background: "var(--primary)" }}
-        >
+      <div className="flex gap-2.5 mt-4 pb-6">
+        <button onClick={() => router.push("/interview")} className="btn-primary flex-1">
           <RotateCcw className="w-4 h-4" />
           Try Again
         </button>
-        <button
-          onClick={() => router.push("/jobs")}
-          className="flex-1 py-4 rounded-2xl font-semibold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-          style={{
-            background: "var(--card-bg)",
-            border: "1.5px solid var(--card-border)",
-            color: "var(--foreground)",
-          }}
-        >
+        <button onClick={() => router.push("/jobs")} className="btn-ghost flex-1">
           <Search className="w-4 h-4" />
           New Job
         </button>
