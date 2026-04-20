@@ -5,6 +5,8 @@
   "main": "index.js",
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "get-stream": "^9.0.1",
     "lucide-react": "^0.476.0",
     "next": "^15.1.7",

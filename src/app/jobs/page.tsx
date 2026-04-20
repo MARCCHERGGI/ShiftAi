@@ -19,6 +19,7 @@ import {
   getResearch,
   clearResearch,
 } from "@/src/lib/research-store";
+import { trackEvent } from "@/src/lib/track";
 import type { ResearchPackage } from "@/src/lib/types";
 
 const steps = [
@@ -47,6 +48,11 @@ export default function JobsPage() {
     setLoading(true);
     setError("");
     setStep(0);
+    const startedAt = Date.now();
+    trackEvent("job_analyze_start", {
+      listing_length: listing.length,
+      words: listing.trim().split(/\s+/).length,
+    });
     const iv = setInterval(() => setStep((p) => Math.min(p + 1, 3)), 2800);
     try {
       const res = await fetch("/api/analyze", {
@@ -61,8 +67,18 @@ export default function JobsPage() {
       const data: ResearchPackage = await res.json();
       setResearch(data);
       saveResearch(data);
+      trackEvent("job_analyze_success", {
+        elapsed_ms: Date.now() - startedAt,
+        restaurant: data.job?.restaurant ?? "unknown",
+        job_title: data.job?.title ?? "unknown",
+        questions: data.questions?.length ?? 0,
+      });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+      trackEvent("job_analyze_error", {
+        elapsed_ms: Date.now() - startedAt,
+        message: err instanceof Error ? err.message.slice(0, 100) : "unknown",
+      });
     } finally {
       clearInterval(iv);
       setLoading(false);
@@ -256,11 +272,23 @@ export default function JobsPage() {
         </div>
 
         <div className="mt-6 space-y-2.5 pb-6">
-          <button onClick={() => router.push("/interview")} className="btn-primary">
+          <button
+            onClick={() => {
+              trackEvent("nav_click", { target: "/interview", from: "jobs_results" });
+              router.push("/interview");
+            }}
+            className="btn-primary"
+          >
             <MessageSquare className="w-4 h-4" />
             Prep Interview ({research.questions.length} Qs)
           </button>
-          <button onClick={() => router.push("/resume-builder")} className="btn-ghost">
+          <button
+            onClick={() => {
+              trackEvent("nav_click", { target: "/resume-builder", from: "jobs_results" });
+              router.push("/resume-builder");
+            }}
+            className="btn-ghost"
+          >
             <FileText className="w-4 h-4" />
             Build Resume
           </button>

@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import Navbar from "@/src/components/Navbar";
 import BottomNav from "@/src/components/BottomNav";
+import PageviewTracker from "@/src/components/PageviewTracker";
 import { ThemeProvider } from "@/src/components/ThemeProvider";
 
 const outfit = Outfit({
@@ -41,7 +44,10 @@ export default function RootLayout({
             {children}
           </main>
           <BottomNav />
+          <PageviewTracker />
         </ThemeProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

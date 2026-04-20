@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Download, ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
 import { getResearch } from "@/src/lib/research-store";
+import { trackEvent } from "@/src/lib/track";
 
 const steps = [
   { title: "Personal Info", fields: ["fullName", "email", "phone"] },
@@ -50,6 +51,8 @@ export default function ResumeForm() {
 
   const handleEnhance = async () => {
     setEnhancing(true);
+    const startedAt = Date.now();
+    trackEvent("resume_enhance_start", { position: data.position || "unset" });
     try {
       const r = getResearch();
       if (!r) throw new Error();
@@ -67,12 +70,23 @@ export default function ResumeForm() {
         experience: enhanced.experience || p.experience,
       }));
       setStep(2);
-    } catch { /* silent */ }
+      trackEvent("resume_enhance_success", { elapsed_ms: Date.now() - startedAt });
+    } catch {
+      trackEvent("resume_enhance_error", { elapsed_ms: Date.now() - startedAt });
+    }
     setEnhancing(false);
   };
 
   const handleSubmit = async () => {
     setLoading(true);
+    const startedAt = Date.now();
+    trackEvent("resume_download_start", {
+      position: data.position || "unset",
+      has_email: Boolean(data.email),
+      has_phone: Boolean(data.phone),
+      has_listing: Boolean(data.jobListing),
+      summary_length: data.summary.length,
+    });
     try {
       const res = await fetch("/api/generate-resume", {
         method: "POST",
@@ -87,8 +101,13 @@ export default function ResumeForm() {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      trackEvent("resume_download_success", {
+        elapsed_ms: Date.now() - startedAt,
+        pdf_bytes: blob.size,
+      });
     } catch {
       alert("Error generating PDF.");
+      trackEvent("resume_download_error", { elapsed_ms: Date.now() - startedAt });
     } finally {
       setLoading(false);
     }

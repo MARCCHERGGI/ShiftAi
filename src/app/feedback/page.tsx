@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { RotateCcw, Search, ChevronDown, ChevronUp } from "lucide-react";
 import { getInterviewResults } from "@/src/lib/research-store";
+import { trackEvent } from "@/src/lib/track";
 import type { InterviewResult } from "@/src/lib/types";
 
 export default function FeedbackPage() {
@@ -115,11 +116,23 @@ export default function FeedbackPage() {
 
       {/* Actions */}
       <div className="flex gap-2.5 mt-4 pb-6">
-        <button onClick={() => router.push("/interview")} className="btn-primary flex-1">
+        <button
+          onClick={() => {
+            trackEvent("feedback_retry", { score });
+            router.push("/interview");
+          }}
+          className="btn-primary flex-1"
+        >
           <RotateCcw className="w-4 h-4" />
           Try Again
         </button>
-        <button onClick={() => router.push("/jobs")} className="btn-ghost flex-1">
+        <button
+          onClick={() => {
+            trackEvent("feedback_new_job", { score });
+            router.push("/jobs");
+          }}
+          className="btn-ghost flex-1"
+        >
           <Search className="w-4 h-4" />
           New Job
         </button>

@@ -4,6 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import { Camera, Save, Check } from "lucide-react";
 
+import { trackEvent } from "@/src/lib/track";
+
 export default function ProfilePage() {
   const [name, setName] = useState("John Doe");
   const [role, setRole] = useState("Bartender");
@@ -17,12 +19,19 @@ export default function ProfilePage() {
       const reader = new FileReader();
       reader.onloadend = () => setProfilePic(reader.result as string);
       reader.readAsDataURL(file);
+      trackEvent("profile_photo_upload", { size: file.size, type: file.type });
     }
   };
 
   const handleSaveProfile = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    trackEvent("profile_save", {
+      has_name: Boolean(name && name !== "John Doe"),
+      role,
+      has_experience: Boolean(experience),
+      has_photo: Boolean(profilePic),
+    });
   };
 
   return (

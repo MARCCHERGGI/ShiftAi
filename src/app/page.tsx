@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { Search, FileText, MessageSquare, ChevronRight } from "lucide-react";
 
+import { trackEvent } from "@/src/lib/track";
+
 const actions = [
   {
     href: "/jobs",
@@ -48,7 +50,10 @@ export default function HomePage() {
         {actions.map(({ href, icon: Icon, title, desc }, i) => (
           <button
             key={href}
-            onClick={() => router.push(href)}
+            onClick={() => {
+              trackEvent("home_action_click", { target: href, title });
+              router.push(href);
+            }}
             className={`fade-in stagger-${i + 1} w-full text-left py-5 flex items-start gap-4`}
             style={{ borderTop: "1px solid var(--border)" }}
           >
@@ -81,7 +86,13 @@ export default function HomePage() {
       </div>
 
       <div className="mt-10 pb-6">
-        <button onClick={() => router.push("/jobs")} className="btn-primary">
+        <button
+          onClick={() => {
+            trackEvent("home_cta_click", { target: "/jobs" });
+            router.push("/jobs");
+          }}
+          className="btn-primary"
+        >
           <Search className="w-4 h-4" />
           Analyze a Job Listing
         </button>

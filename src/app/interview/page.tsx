@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Send, RotateCcw } from "lucide-react";
 import { getResearch, saveInterviewResults } from "@/src/lib/research-store";
+import { trackEvent } from "@/src/lib/track";
 import type {
   InterviewQuestion,
   AnswerEvaluation,
@@ -48,6 +49,13 @@ export default function InterviewPage() {
   const handleSubmit = async () => {
     if (!answer.trim()) return;
     setLoading(true);
+    trackEvent("interview_answer_submit", {
+      question_id: questions[cur].id,
+      question_index: cur,
+      category: questions[cur].category,
+      difficulty: questions[cur].difficulty,
+      answer_length: answer.length,
+    });
     try {
       const res = await fetch("/api/interview/evaluate", {
         method: "POST",
@@ -63,6 +71,10 @@ export default function InterviewPage() {
       const ev: AnswerEvaluation = await res.json();
       setEvaluation(ev);
       setResults((p) => [...p, { questionId: questions[cur].id, question: questions[cur].question, answer, evaluation: ev }]);
+      trackEvent("interview_answer_scored", {
+        question_id: questions[cur].id,
+        score: ev.score,
+      });
     } catch {
       setEvaluation({
         score: answer.length > 50 ? 7 : 5,
@@ -78,10 +90,19 @@ export default function InterviewPage() {
 
   const handleNext = () => {
     if (cur < questions.length - 1) {
+      trackEvent("interview_next", { from: cur, to: cur + 1 });
       setCur(cur + 1);
       setAnswer("");
       setEvaluation(null);
     } else {
+      const avg = results.length
+        ? results.reduce((s, r) => s + (r.evaluation?.score ?? 0), 0) / results.length
+        : 0;
+      trackEvent("interview_complete", {
+        total_questions: questions.length,
+        answered: results.length,
+        avg_score: Math.round(avg * 10) / 10,
+      });
       saveInterviewResults(results);
       router.push("/feedback");
     }
