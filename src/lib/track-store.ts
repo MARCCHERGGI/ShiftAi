@@ -1,3 +1,5 @@
+import { Redis } from "@upstash/redis";
+
 const KEY = "shiftai:events";
 const MAX_EVENTS = 5000;
 
@@ -11,45 +13,31 @@ type StoredEvent = {
   city?: string;
 };
 
-function upstashConfigured(): boolean {
-  return !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
-}
-
-async function upstashCmd(args: (string | number)[]): Promise<unknown> {
-  const url = process.env.UPSTASH_REDIS_REST_URL!;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN!;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(args),
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`upstash ${res.status}`);
-  const data = (await res.json()) as { result: unknown };
-  return data.result;
-}
+const redis = (() => {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+  return new Redis({ url, token });
+})();
 
 export async function pushEvent(evt: StoredEvent): Promise<void> {
-  if (!upstashConfigured()) return;
+  if (!redis) return;
   try {
-    await upstashCmd(["LPUSH", KEY, JSON.stringify(evt)]);
-    await upstashCmd(["LTRIM", KEY, 0, MAX_EVENTS - 1]);
+    await redis.lpush(KEY, JSON.stringify(evt));
+    await redis.ltrim(KEY, 0, MAX_EVENTS - 1);
   } catch (err) {
     console.error("[track-store] push failed", err);
   }
 }
 
 export async function recentEvents(limit = 500): Promise<StoredEvent[]> {
-  if (!upstashConfigured()) return [];
+  if (!redis) return [];
   try {
-    const raw = (await upstashCmd(["LRANGE", KEY, 0, limit - 1])) as string[];
+    const raw = await redis.lrange(KEY, 0, limit - 1);
     return raw
       .map((s) => {
         try {
-          return JSON.parse(s) as StoredEvent;
+          return typeof s === "string" ? (JSON.parse(s) as StoredEvent) : (s as StoredEvent);
         } catch {
           return null;
         }
@@ -62,5 +50,5 @@ export async function recentEvents(limit = 500): Promise<StoredEvent[]> {
 }
 
 export function hasStorage(): boolean {
-  return upstashConfigured();
+  return !!redis;
 }

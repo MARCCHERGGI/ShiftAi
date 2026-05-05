@@ -84,9 +84,9 @@ export default function AdminDashboard() {
     return {
       total: data?.events.length ?? 0,
       sessions: sessions.size,
-      byName: [...byName.entries()].sort((a, b) => b[1] - a[1]),
+      byName:    [...byName.entries()].sort((a, b) => b[1] - a[1]),
       byCountry: [...byCountry.entries()].sort((a, b) => b[1] - a[1]),
-      byPath: [...byPath.entries()].sort((a, b) => b[1] - a[1]),
+      byPath:    [...byPath.entries()].sort((a, b) => b[1] - a[1]),
     };
   }, [data]);
 
@@ -97,44 +97,49 @@ export default function AdminDashboard() {
   }, [data, filter]);
 
   return (
-    <div className="fade-in px-5 max-w-4xl mx-auto">
-      <div className="pt-6 pb-4">
-        <p className="label mb-1">Admin</p>
+    <div className="fade-in px-4 max-w-[900px] mx-auto pb-4">
+      <header className="pt-3 pb-4">
+        <p className="label">Admin</p>
         <h1 className="display">Tracking</h1>
-        <p
-          className="mt-2 text-sm leading-relaxed"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          Live events from visitors: page views, job analyses, resume downloads, interviews.
-          Refreshes every 15s.
+        <p className="subhead mt-2" style={{ color: "var(--ios-label-secondary)" }}>
+          Live events from visitors. Refreshes every 15 s.
         </p>
-      </div>
+      </header>
 
-      <div className="mt-2 mb-6 flex gap-2">
-        <input
-          type="password"
-          className="input-field flex-1"
-          placeholder="Admin token"
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void load();
-          }}
-        />
+      {/* Token input (hidden once loaded) */}
+      {!data && (
+        <div className="ios-group mb-4">
+          <div className="px-4 py-2.5">
+            <label className="footnote block mb-1" style={{ color: "var(--ios-label-secondary)" }}>
+              Admin token
+            </label>
+            <input
+              type="password"
+              className="w-full bg-transparent border-none outline-none body p-0"
+              placeholder="Paste token"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void load();
+              }}
+              style={{ color: "var(--ios-label)" }}
+            />
+          </div>
+        </div>
+      )}
+      {!data && (
         <button
-          type="button"
           onClick={load}
           disabled={loading || !token}
-          className="btn-primary flex-shrink-0"
-          style={{ width: "auto", paddingLeft: 16, paddingRight: 16 }}
+          className="btn-primary pulse-press mb-4"
         >
-          {loading ? "…" : "Load"}
+          {loading ? "…" : "Load events"}
         </button>
-      </div>
+      )}
 
       {error && (
         <div
-          className="mb-4 p-3 rounded-lg text-sm"
+          className="mb-4 p-4 rounded-[14px] subhead"
           style={{ background: "var(--danger-dim)", color: "var(--danger)" }}
         >
           {error}
@@ -143,28 +148,35 @@ export default function AdminDashboard() {
 
       {data && (
         <>
-          <div className="flex flex-wrap gap-3 mb-6">
-            <Stat label="Storage" value={data.storage} />
-            <Stat label="Events" value={String(counts.total)} />
-            <Stat label="Sessions" value={String(counts.sessions)} />
+          {/* KPI row */}
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            <Kpi label="Storage"  value={data.storage} />
+            <Kpi label="Events"   value={String(counts.total)} />
+            <Kpi label="Sessions" value={String(counts.sessions)} />
           </div>
 
+          {/* Breakdowns */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-            <StatBlock
-              title="Events by name"
+            <Breakdown
+              title="Events"
               rows={counts.byName}
               onRowClick={(k) => setFilter(k)}
               active={filter}
             />
-            <StatBlock title="Traffic by path" rows={counts.byPath} />
-            <StatBlock title="Country" rows={counts.byCountry} />
+            <Breakdown title="Paths"   rows={counts.byPath} />
+            <Breakdown title="Country" rows={counts.byCountry} />
           </div>
 
-          <div className="flex gap-1.5 flex-wrap mb-4">
+          {/* Filter pills */}
+          <div className="flex gap-1.5 flex-wrap mb-4 px-1">
             <button
               type="button"
-              className="badge"
-              style={filter === "all" ? { background: "var(--accent-dim)", color: "var(--accent-text)" } : {}}
+              className="badge pulse-press"
+              style={
+                filter === "all"
+                  ? { background: "var(--accent-dim)", color: "var(--accent-text)" }
+                  : undefined
+              }
               onClick={() => setFilter("all")}
             >
               All ({counts.total})
@@ -173,8 +185,12 @@ export default function AdminDashboard() {
               <button
                 key={name}
                 type="button"
-                className="badge"
-                style={filter === name ? { background: "var(--accent-dim)", color: "var(--accent-text)" } : {}}
+                className="badge pulse-press"
+                style={
+                  filter === name
+                    ? { background: "var(--accent-dim)", color: "var(--accent-text)" }
+                    : undefined
+                }
                 onClick={() => setFilter(name)}
               >
                 {name} ({n})
@@ -182,26 +198,37 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          <div className="space-y-2 pb-8">
+          {/* Event feed */}
+          <h3 className="ios-group-header">Feed</h3>
+          <div className="ios-group mb-6">
             {filtered.length === 0 ? (
-              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
-                No events yet.
-              </p>
+              <div className="p-6 text-center">
+                <p className="subhead" style={{ color: "var(--ios-label-tertiary)" }}>
+                  No events yet.
+                </p>
+              </div>
             ) : (
               filtered.map((e, i) => (
                 <div
                   key={`${e.ts}-${i}`}
-                  className="p-3 rounded-lg"
-                  style={{ background: "var(--surface)" }}
+                  className="p-4"
+                  style={
+                    i > 0
+                      ? { borderTop: "0.5px solid var(--ios-separator)" }
+                      : undefined
+                  }
                 >
-                  <div className="flex flex-wrap gap-2 items-center mb-1.5">
+                  <div className="flex flex-wrap gap-2 items-center mb-2">
                     <span
-                      className="text-xs font-semibold px-2 py-0.5 rounded"
-                      style={{ background: "var(--accent-dim)", color: "var(--accent-text)" }}
+                      className="badge"
+                      style={{ background: "var(--accent-dim)", color: "var(--accent-text)", fontWeight: 600 }}
                     >
                       {e.name}
                     </span>
-                    <span className="text-xs tabular-nums" style={{ color: "var(--text-tertiary)" }}>
+                    <span
+                      className="footnote tabular-nums"
+                      style={{ color: "var(--ios-label-tertiary)" }}
+                    >
                       {new Date(e.ts).toLocaleString()}
                     </span>
                     {e.country && (
@@ -210,15 +237,10 @@ export default function AdminDashboard() {
                         {e.city ? ` · ${e.city}` : ""}
                       </span>
                     )}
-                    {e.ip && (
-                      <span className="text-xs font-mono" style={{ color: "var(--text-tertiary)" }}>
-                        {e.ip}
-                      </span>
-                    )}
                   </div>
                   <pre
-                    className="text-xs font-mono whitespace-pre-wrap overflow-x-auto"
-                    style={{ color: "var(--text-secondary)" }}
+                    className="caption font-mono whitespace-pre-wrap overflow-x-auto"
+                    style={{ color: "var(--ios-label-secondary)" }}
                   >
                     {JSON.stringify(e.props, null, 2)}
                   </pre>
@@ -226,56 +248,55 @@ export default function AdminDashboard() {
               ))
             )}
           </div>
+
+          {data.storage === "none" && (
+            <div
+              className="p-4 rounded-[14px] footnote"
+              style={{ background: "var(--ios-gray-6)", color: "var(--ios-label-secondary)" }}
+            >
+              <strong style={{ color: "var(--ios-label)" }}>Storage: none.</strong>{" "}
+              Events fire into Vercel Web Analytics and runtime logs. To persist
+              them in this dashboard, set{" "}
+              <code
+                className="px-1 rounded"
+                style={{ background: "rgba(60,60,67,0.08)" }}
+              >
+                UPSTASH_REDIS_REST_URL
+              </code>{" "}
+              +{" "}
+              <code
+                className="px-1 rounded"
+                style={{ background: "rgba(60,60,67,0.08)" }}
+              >
+                UPSTASH_REDIS_REST_TOKEN
+              </code>{" "}
+              in Vercel env (free at upstash.com).
+            </div>
+          )}
         </>
       )}
-
-      {data?.storage === "none" && (
-        <div
-          className="mt-2 p-3 rounded-lg text-xs leading-relaxed"
-          style={{ background: "var(--surface)", color: "var(--text-secondary)" }}
-        >
-          <strong>Storage: none.</strong> Events fire into Vercel Web Analytics (
-          <a
-            href="https://vercel.com/hergis-projects-cfb9fc99/shiftai/analytics"
-            target="_blank"
-            rel="noreferrer"
-            style={{ color: "var(--accent)" }}
-          >
-            dashboard
-          </a>
-          ) and runtime logs. For this in-app view, set{" "}
-          <code
-            className="px-1 rounded"
-            style={{ background: "var(--border)" }}
-          >
-            UPSTASH_REDIS_REST_URL
-          </code>{" "}
-          +{" "}
-          <code
-            className="px-1 rounded"
-            style={{ background: "var(--border)" }}
-          >
-            UPSTASH_REDIS_REST_TOKEN
-          </code>{" "}
-          in Vercel env (free at upstash.com).
-        </div>
-      )}
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Kpi({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-3 rounded-lg" style={{ background: "var(--surface)" }}>
-      <p className="label">{label}</p>
-      <p className="text-2xl font-bold tabular-nums" style={{ color: "var(--text)" }}>
-        {value}
+    <div
+      className="p-3 rounded-[14px]"
+      style={{
+        background: "#fff",
+        boxShadow: "0 1px 2px rgba(15,23,42,0.04), inset 0 1px 0 rgba(255,255,255,0.9)",
+      }}
+    >
+      <p className="caption uppercase tracking-wider" style={{ color: "var(--ios-label-secondary)", fontWeight: 600 }}>
+        {label}
       </p>
+      <p className="title-2 tabular-nums mt-0.5">{value}</p>
     </div>
   );
 }
 
-function StatBlock({
+function Breakdown({
   title,
   rows,
   onRowClick,
@@ -287,33 +308,35 @@ function StatBlock({
   active?: string;
 }) {
   return (
-    <div className="p-3 rounded-lg" style={{ background: "var(--surface)" }}>
-      <p className="label mb-2">{title}</p>
-      {rows.length === 0 ? (
-        <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-          —
-        </p>
-      ) : (
-        <ul className="space-y-1">
-          {rows.slice(0, 10).map(([k, n]) => (
-            <li
+    <div>
+      <h3 className="ios-group-header">{title}</h3>
+      <div className="ios-group">
+        {rows.length === 0 ? (
+          <div className="p-4">
+            <p className="footnote" style={{ color: "var(--ios-label-tertiary)" }}>—</p>
+          </div>
+        ) : (
+          rows.slice(0, 10).map(([k, n], idx) => (
+            <button
               key={k}
               onClick={() => onRowClick?.(k)}
-              className="flex justify-between text-xs py-1 px-1.5 rounded"
+              className="ios-row"
               style={{
-                color: "var(--text-secondary)",
                 cursor: onRowClick ? "pointer" : "default",
                 background: active === k ? "var(--accent-dim)" : "transparent",
+                ...(idx > 0
+                  ? { borderTop: "0.5px solid var(--ios-separator)" }
+                  : {}),
               }}
             >
-              <span className="truncate pr-2">{k}</span>
-              <strong className="tabular-nums" style={{ color: "var(--text)" }}>
+              <span className="ios-row__body body truncate">{k}</span>
+              <span className="tabular-nums" style={{ color: "var(--ios-label-secondary)", fontWeight: 600 }}>
                 {n}
-              </strong>
-            </li>
-          ))}
-        </ul>
-      )}
+              </span>
+            </button>
+          ))
+        )}
+      </div>
     </div>
   );
 }

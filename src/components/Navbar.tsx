@@ -1,49 +1,44 @@
 "use client";
 
-import { useTheme } from "@/src/components/ThemeProvider";
-import { Moon, Sun } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function Navbar() {
-  const { theme, toggleTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+const ROOT = new Set(["/", "/jobs", "/interview", "/resume-builder", "/profile"]);
+
+export default function NavBar() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  return (
-    <nav
-      className="fixed w-full top-0 z-50"
-      style={{
-        background: "var(--bg)",
-        borderBottom: "1px solid var(--border)",
-      }}
-    >
-      <div className="max-w-lg mx-auto flex justify-between items-center px-5 h-12">
-        <span
-          className="text-base font-bold"
-          style={{ color: "var(--text)", letterSpacing: "-0.03em" }}
-        >
-          shift
-          <span style={{ color: "var(--accent)" }}>ai</span>
-        </span>
+  const isRoot = ROOT.has(pathname);
 
-        {mounted && (
-          <button
-            onClick={toggleTheme}
-            className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-            style={{ color: "var(--text-tertiary)" }}
-            aria-label="Toggle theme"
-          >
-            {theme === "dark" ? (
-              <Sun className="w-4 h-4" />
-            ) : (
-              <Moon className="w-4 h-4" />
-            )}
-          </button>
-        )}
+  return (
+    <header className={`top-bar ${scrolled ? "is-scrolled" : ""}`}>
+      <div className="top-bar__row">
+        <div>
+          {!isRoot ? (
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="top-bar__back"
+              aria-label="Back"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m15 6-6 6 6 6" />
+              </svg>
+              <span>Back</span>
+            </button>
+          ) : null}
+        </div>
+        <div />
       </div>
-    </nav>
+    </header>
   );
 }
