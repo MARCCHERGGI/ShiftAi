@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <!-- Cream foundation -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#F8F5EE"/>
+      <stop offset="60%"  stop-color="#F5F1EA"/>
+      <stop offset="100%" stop-color="#EFE6D2"/>
+    </linearGradient>
+    <radialGradient id="blob" cx="0.10" cy="0.05" r="0.55">
+      <stop offset="0%" stop-color="#B45309" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#B45309" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#7C2D12"/>
+    </linearGradient>
+    <filter id="tileShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="20"/>
+      <feOffset dx="0" dy="16"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.25"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#blob)"/>
+
+  <!-- App icon tile -->
+  <g filter="url(#tileShadow)" transform="translate(72 175)">
+    <rect width="280" height="280" rx="63" fill="url(#tile)"/>
+    <rect x="2" y="2" width="276" height="276" rx="62" fill="none" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="2"/>
+    <g transform="translate(140 144)">
+      <path d="
+        M 56 -68
+        C 56 -86, 38 -96, 12 -96
+        C -18 -96, -50 -82, -50 -54
+        C -50 -30, -28 -22, 4 -16
+        C 32 -10, 50 0, 50 22
+        C 50 46, 28 60, -4 60
+        C -32 60, -54 48, -60 24
+      "
+      fill="none" stroke="#FAF7F1" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- Headline -->
+  <g font-family="Arial, Helvetica, sans-serif" fill="#0A0A0A">
+    <text x="412" y="245" font-size="22" font-weight="700" fill="#B45309" letter-spacing="3">FOR BARTENDERS</text>
+    <text x="412" y="335" font-size="92" font-weight="800" letter-spacing="-3.5">Land your shift.</text>
+    <text x="412" y="395" font-size="30" font-weight="500" fill="#6B6356" letter-spacing="-0.6">
+      AI agents research the venue, the pay,
+    </text>
+    <text x="412" y="432" font-size="30" font-weight="500" fill="#6B6356" letter-spacing="-0.6">
+      and prep your interview.
+    </text>
+  </g>
+
+  <!-- Bottom dark pill (CTA-style) -->
+  <g transform="translate(412 480)">
+    <rect x="0" y="0" width="220" height="56" rx="28" fill="#0A0A0A"/>
+    <text x="110" y="36" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700"
+          fill="#FFFFFF" text-anchor="middle" letter-spacing="-0.2">Open Shift AI →</text>
+  </g>
+
+  <!-- URL -->
+  <text x="72" y="580" font-family="Arial, Helvetica, sans-serif"
+        font-size="18" font-weight="500" fill="#B7AE9F" letter-spacing="0.4">shiftai-six.vercel.app</text>
+</svg>

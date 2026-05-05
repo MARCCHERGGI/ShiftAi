@@ -1,37 +1,20 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext } from "react";
 
 interface ThemeContextType {
-  theme: string;
+  theme: "light";
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: "dark",
+  theme: "light",
   toggleTheme: () => {},
 });
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setTheme] = useState<string>("dark");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("shiftai-theme") || "dark";
-    setTheme(stored);
-    document.documentElement.setAttribute("data-theme", stored);
-    document.documentElement.classList.toggle("dark", stored === "dark");
-  }, []);
-
-  const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    localStorage.setItem("shiftai-theme", next);
-    document.documentElement.setAttribute("data-theme", next);
-    document.documentElement.classList.toggle("dark", next === "dark");
-  };
-
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme: "light", toggleTheme: () => {} }}>
       {children}
     </ThemeContext.Provider>
   );
