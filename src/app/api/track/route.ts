@@ -1,11 +1,14 @@
 import { NextRequest } from "next/server";
-
 import { pushEvent } from "@/src/lib/track-store";
+import { enforceLimit } from "@/src/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const rl = await enforceLimit(req, "track");
+  if (!rl.ok) return new Response(null, { status: 204 });
+
   let payload: { name?: string; props?: Record<string, unknown>; ts?: number; ua?: string } = {};
   try {
     payload = await req.json();

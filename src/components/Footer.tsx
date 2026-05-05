@@ -8,7 +8,7 @@ export default function Footer() {
       
       {/* 🔹 Copyright */}
       <p className="text-sm">
-        © {new Date().getFullYear()} <span className="font-semibold">ShiftAI</span>. All rights reserved.
+        © {new Date().getFullYear()} <span className="font-semibold">Jigger</span>. All rights reserved.
       </p>
 
       {/* 🔹 Social Media Icons */}
