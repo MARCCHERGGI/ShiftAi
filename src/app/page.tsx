@@ -102,8 +102,8 @@ export default function Page() {
         return;
       }
       const json = await res.json();
-      const text = (json.reply || "Sorry — couldn't generate a reply.").replace(ACTION_RE, "").trim();
-      push({ role: "assistant", content: text });
+      const reply = (json.reply || "Sorry — couldn't generate a reply.").replace(ACTION_RE, "").trim();
+      push({ role: "assistant", content: reply });
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") return;
       push({ role: "assistant", content: "Network error. Try again in a moment." });
