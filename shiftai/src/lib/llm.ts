@@ -74,7 +74,18 @@ export async function runWebSearch(opts: WebSearchOpts): Promise<WebSearchResult
     try {
       return await runGeminiWithSearch(opts);
     } catch (err) {
-      console.warn("[llm] Gemini web-search failed, falling back:", err);
+      // Free tier is 20 req/min; parallel agents can trip it. The 429 asks for
+      // a sub-second retry, so one short wait usually keeps us on the free path.
+      if (err instanceof Error && err.message.includes("429")) {
+        await new Promise((r) => setTimeout(r, 1_500));
+        try {
+          return await runGeminiWithSearch(opts);
+        } catch (err2) {
+          console.warn("[llm] Gemini web-search failed after 429 retry:", err2);
+        }
+      } else {
+        console.warn("[llm] Gemini web-search failed, falling back:", err);
+      }
     }
   }
   if (GROQ_KEY || OPENROUTER_KEY) {
@@ -93,7 +104,7 @@ export async function runWebSearch(opts: WebSearchOpts): Promise<WebSearchResult
   }
   // Last resort: no real grounding, just LLM reasoning over the prompt.
   const text = await runChat({
-    system: opts.systemPrompt,
+    system: `${opts.systemPrompt}\n\nIMPORTANT: You have NO live web access right now. State only facts you are highly confident about from training data. For specific names, dates, ratings, or menu items you are not certain of, say "not found" instead — NEVER guess or invent a name.`,
     messages: [{ role: "user", content: opts.userPrompt }],
     maxTokens: opts.maxOutputTokens,
   });
@@ -160,6 +171,7 @@ function htmlToText(html: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -203,6 +215,40 @@ async function ddgSearch(query: string, signal?: AbortSignal): Promise<DdgHit[]>
   return hits;
 }
 
+/** DDG lite endpoint — simpler markup, sometimes reachable where /html/ is blocked. */
+async function ddgLiteSearch(query: string): Promise<DdgHit[]> {
+  const res = await fetch(`https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`, {
+    headers: { "user-agent": BROWSER_UA, "accept-language": "en-US,en;q=0.9" },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!res.ok) throw new Error(`DDG-lite ${res.status}`);
+  const html = await res.text();
+  const hits: DdgHit[] = [];
+  const links = [...html.matchAll(/class=['"]result-link['"][^>]*href=['"]([^'"]+)['"][^>]*>([\s\S]*?)<\/a>/g)];
+  const snippets = [...html.matchAll(/class=['"]result-snippet['"][^>]*>([\s\S]*?)<\/td>/g)];
+  for (let i = 0; i < links.length && hits.length < 8; i++) {
+    const url = decodeDdgHref(links[i][1]);
+    if (!url) continue;
+    hits.push({
+      title: htmlToText(links[i][2]),
+      url,
+      snippet: htmlToText(snippets[i]?.[1] ?? "").slice(0, 300),
+    });
+  }
+  return hits;
+}
+
+async function anySearch(query: string): Promise<DdgHit[]> {
+  try {
+    const hits = await ddgSearch(query, AbortSignal.timeout(8_000));
+    if (hits.length > 0) return hits;
+    throw new Error("DDG returned no results");
+  } catch (err) {
+    console.warn("[llm] DDG failed, trying DDG-lite:", err);
+    return ddgLiteSearch(query);
+  }
+}
+
 async function fetchReadable(url: string): Promise<string> {
   const ctrl = AbortSignal.timeout(6000);
   try {
@@ -215,15 +261,6 @@ async function fetchReadable(url: string): Promise<string> {
       const text = htmlToText(await res.text());
       if (text.length > 400) return text.slice(0, 4000);
     }
-  } catch {
-    /* fall through to Jina reader */
-  }
-  try {
-    const res = await fetch(`https://r.jina.ai/${url}`, {
-      headers: { "user-agent": BROWSER_UA },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (res.ok) return (await res.text()).slice(0, 4000);
   } catch {
     /* page unreadable — snippet-only is still useful */
   }
@@ -251,8 +288,8 @@ async function runFreeSearch(opts: WebSearchOpts): Promise<WebSearchResult> {
   if (!query) query = opts.userPrompt.split(/\s+/).slice(0, 10).join(" ");
 
   // 2. Search + read the top pages in parallel.
-  const hits = await ddgSearch(query, AbortSignal.timeout(8000));
-  if (hits.length === 0) throw new Error("DDG returned no results");
+  const hits = await anySearch(query);
+  if (hits.length === 0) throw new Error("search returned no results");
   const top = hits.slice(0, 3);
   const pages = await Promise.all(top.map((h) => fetchReadable(h.url)));
 
