@@ -370,24 +370,35 @@ export async function runStructuredExtract<T>(opts: StructuredExtractOpts): Prom
 
 async function runGroqJSON<T>(opts: StructuredExtractOpts): Promise<T> {
   const sys = `${opts.systemPrompt}\n\nReturn ONLY a JSON object that matches this schema (no markdown, no fences, no commentary):\n${JSON.stringify(opts.schema)}`;
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${GROQ_KEY}` },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      messages: [
-        { role: "system", content: sys },
-        { role: "user", content: opts.userPrompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.2,
-      max_tokens: opts.maxTokens ?? 4096,
-    }),
-  });
-  if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text().catch(() => "")}`);
-  const j = (await res.json()) as OpenAIChatResponse;
-  const content = j.choices?.[0]?.message?.content ?? "{}";
-  return JSON.parse(content) as T;
+  const call = async (model: string) => {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${GROQ_KEY}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: opts.userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.2,
+        max_tokens: opts.maxTokens ?? 4096,
+      }),
+    });
+    if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text().catch(() => "")}`);
+    const j = (await res.json()) as OpenAIChatResponse;
+    return JSON.parse(j.choices?.[0]?.message?.content ?? "{}") as T;
+  };
+  try {
+    return await call(GROQ_MODEL);
+  } catch (err) {
+    // 70B and 8B have SEPARATE free-tier daily token pools — degrade, stay free.
+    if (err instanceof Error && err.message.includes("429")) {
+      console.warn("[llm] Groq 70B rate-limited, degrading to fast model");
+      return call(GROQ_FAST_MODEL);
+    }
+    throw err;
+  }
 }
 
 async function runGeminiJSON<T>(opts: StructuredExtractOpts): Promise<T> {
@@ -489,19 +500,31 @@ export async function runChat(opts: ChatOpts): Promise<string> {
 }
 
 async function runGroqChat(opts: ChatOpts): Promise<string> {
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${GROQ_KEY}` },
-    body: JSON.stringify({
-      model: opts.fast ? GROQ_FAST_MODEL : GROQ_MODEL,
-      messages: [{ role: "system", content: opts.system }, ...opts.messages],
-      temperature: 0.4,
-      max_tokens: opts.maxTokens ?? 1024,
-    }),
-  });
-  if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text().catch(() => "")}`);
-  const j = (await res.json()) as OpenAIChatResponse;
-  return j.choices?.[0]?.message?.content ?? "";
+  const call = async (model: string) => {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${GROQ_KEY}` },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "system", content: opts.system }, ...opts.messages],
+        temperature: 0.4,
+        max_tokens: opts.maxTokens ?? 1024,
+      }),
+    });
+    if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text().catch(() => "")}`);
+    const j = (await res.json()) as OpenAIChatResponse;
+    return j.choices?.[0]?.message?.content ?? "";
+  };
+  const primary = opts.fast ? GROQ_FAST_MODEL : GROQ_MODEL;
+  try {
+    return await call(primary);
+  } catch (err) {
+    if (primary !== GROQ_FAST_MODEL && err instanceof Error && err.message.includes("429")) {
+      console.warn("[llm] Groq 70B rate-limited, degrading to fast model");
+      return call(GROQ_FAST_MODEL);
+    }
+    throw err;
+  }
 }
 
 async function runGeminiChat(opts: ChatOpts): Promise<string> {
