@@ -278,6 +278,7 @@ async function runFreeSearch(opts: WebSearchOpts): Promise<WebSearchResult> {
     ],
     maxTokens: opts.maxOutputTokens ?? 2048,
   });
+  if (!text.trim()) throw new Error("free-search synthesis returned empty text");
   return { text, groundingUrls: top.map((h) => h.url), provider: "free-search" };
 }
 
@@ -295,11 +296,9 @@ async function runOpenAIWithSearch(opts: WebSearchOpts): Promise<WebSearchResult
     max_output_tokens: opts.maxOutputTokens ?? 4096,
   };
   const res = await client.responses.create(params as never);
-  return {
-    text: ((res as { output_text?: string }).output_text ?? "").trim(),
-    groundingUrls: [],
-    provider: "openai",
-  };
+  const text = ((res as { output_text?: string }).output_text ?? "").trim();
+  if (!text) throw new Error("OpenAI returned empty text");
+  return { text, groundingUrls: [], provider: "openai" };
 }
 
 /* ────────────────────────────  STRUCTURED EXTRACT  ──────────────────────────── */
