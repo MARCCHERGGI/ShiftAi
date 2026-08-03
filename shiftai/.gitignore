@@ -1,0 +1,14 @@
+node_modules/
+.next/
+.env.local
+shiftai-start.log
+shiftai-start-3101.log
+shiftai-launch.log
+shiftai-active-build.txt
+output/
+tmp/
+tsconfig.tsbuildinfo
+
+.vercel
+
+.env*.local

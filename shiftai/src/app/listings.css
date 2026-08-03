@@ -1,0 +1,246 @@
+/* ============================================================
+   SHIFTAI — Listings view (the simpler one thing)
+   Just shows verified Craigslist Manhattan walk-in jobs.
+   ============================================================ */
+
+.sa-meta {
+  margin: 8px 0 0;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--lg-text-3);
+  letter-spacing: -0.005em;
+}
+
+.sa-meta__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--lg-r-pill);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1a8141;
+  background: rgba(48, 209, 88, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(48, 209, 88, 0.30);
+}
+
+html[data-theme="dark"] .sa-meta__pill {
+  color: #6ee089;
+  background: rgba(48, 209, 88, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(48, 209, 88, 0.20);
+}
+
+.sa-meta__sep { color: var(--lg-text-4); }
+
+.sa-meta__spin {
+  animation: sa-spin 1s linear infinite;
+}
+
+/* role filter chips — slightly tighter than form chips, scroll on overflow */
+.sa-chips--filter {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  margin: 0 -8px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.sa-chips--filter::-webkit-scrollbar { display: none; }
+
+.sa-chips--filter .sa-chip {
+  flex-shrink: 0;
+}
+
+/* listings */
+.sa-listings {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sa-listing {
+  padding: 20px 22px 18px;
+  border-radius: var(--lg-r-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sa-listing__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sa-listing__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sa-listing__name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  line-height: 1.25;
+  color: var(--lg-text);
+  word-break: break-word;
+}
+
+.sa-listing__role {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--lg-r-pill);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lg-blue);
+  background: rgba(0, 122, 255, 0.10);
+  align-self: flex-start;
+}
+
+html[data-theme="dark"] .sa-listing__role {
+  color: #5e9eff;
+  background: rgba(10, 132, 255, 0.16);
+}
+
+.sa-listing__pay {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--lg-r-pill);
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a8141;
+  background: rgba(48, 209, 88, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(48, 209, 88, 0.28);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+html[data-theme="dark"] .sa-listing__pay {
+  color: #6ee089;
+  background: rgba(48, 209, 88, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(48, 209, 88, 0.22);
+}
+
+.sa-listing__addr,
+.sa-listing__when {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  color: var(--lg-text);
+  letter-spacing: -0.005em;
+  font-weight: 500;
+}
+
+.sa-listing__addr svg,
+.sa-listing__when svg {
+  flex-shrink: 0;
+  color: var(--lg-blue);
+}
+
+.sa-listing__hood {
+  color: var(--lg-text-3);
+  font-weight: 500;
+  margin-left: 2px;
+}
+
+.sa-listing__excerpt {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--lg-text-2);
+  letter-spacing: -0.005em;
+}
+
+.sa-listing__bring {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--lg-text-3);
+  letter-spacing: -0.005em;
+  font-weight: 500;
+}
+
+.sa-listing__link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lg-blue);
+  letter-spacing: -0.005em;
+  transition: color var(--lg-dur-1) var(--lg-ease);
+}
+
+.sa-listing__link:hover { color: var(--lg-blue-strong); }
+
+/* empty state */
+.sa-empty {
+  padding: 22px 24px;
+  border-radius: var(--lg-r-lg);
+  text-align: center;
+}
+
+.sa-empty p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--lg-text-2);
+  letter-spacing: -0.005em;
+}
+
+.sa-empty__sub {
+  margin-top: 6px !important;
+  font-size: 13px !important;
+  color: var(--lg-text-3) !important;
+}
+
+/* footer */
+.sa-foot {
+  margin-top: 20px;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--lg-text-3);
+  letter-spacing: -0.005em;
+  line-height: 1.5;
+}
+
+.sa-foot svg { color: var(--lg-text-3); }
+
+.sa-foot__muted { color: var(--lg-text-4); }
+
+/* refresh pill in topbar */
+.sa-brand__pill {
+  gap: 6px;
+}
+.sa-brand__pill svg {
+  transition: transform var(--lg-dur-3) var(--lg-ease);
+}
+.sa-brand__pill:hover svg {
+  transform: rotate(120deg);
+}

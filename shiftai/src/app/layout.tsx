@@ -1,57 +1,71 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
+import PageviewTracker from "@/src/components/PageviewTracker";
+import RegisterSW from "@/src/components/RegisterSW";
+import TabBar from "@/src/components/ios/TabBar";
+
 import "./globals.css";
-import Navbar from "@/src/components/Navbar";
-import Footer from "@/src/components/Footer";
-import { ThemeProvider } from "@/src/components/ThemeProvider";
+import "./walkin.css";
+import "./listings.css";
 
-// ✅ Load Google Fonts
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-// ✅ Metadata for SEO
 export const metadata: Metadata = {
-  title: "ShiftAI - AI-Powered Interview Coach",
-  description: "Ace your restaurant job interviews with AI-powered feedback and coaching.",
-  keywords: "AI Interview Coach, Restaurant Jobs, AI Job Prep",
-  authors: [{ name: "ShiftAI Team" }],
+  title: "Shift AI · Bartender job prep",
+  description:
+    "Paste a bartender job link — an agent crew researches the venue, tailors your resume, and runs a venue-specific mock interview. Built for NYC bartenders.",
+  metadataBase: new URL("https://shiftai-six.vercel.app"),
+  applicationName: "Shift AI",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Shift AI",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
   openGraph: {
-    title: "ShiftAI - Your AI-Powered Interview Coach",
-    description: "Prepare for restaurant job interviews with instant AI feedback.",
-    url: "https://shiftai.app",
-    siteName: "ShiftAI",
-    images: [
-      {
-        url: "/shiftai-thumbnail.png", // ✅ Ensure this image exists in `public/`
-        width: 1200,
-        height: 630,
-        alt: "ShiftAI - AI Interview Coach",
-      },
-    ],
+    title: "Shift AI · Bartender job prep",
+    description:
+      "Paste a job link — an agent crew researches the venue, tailors your resume, and preps your interview. Free.",
+    url: "https://shiftai-six.vercel.app",
+    siteName: "Shift AI",
+    images: ["/og.png"],
+    locale: "en_US",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Shift AI · Bartender job prep",
+    description:
+      "An agent crew that preps NYC bartenders for any venue. Verified listings, tailored resume, mock interview.",
+    images: ["/og.png"],
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#F2F2F7",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen transition-colors duration-300 bg-background text-foreground`}
-      >
-        <ThemeProvider> {/* ✅ Wrap app with ThemeProvider */}
-          <Navbar />
-          <main className="flex-grow container mx-auto px-4 pt-20">{children}</main>
-          <Footer />
-        </ThemeProvider>
+    <html lang="en" data-theme="light" suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        {children}
+        <TabBar />
+        <PageviewTracker />
+        <RegisterSW />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
