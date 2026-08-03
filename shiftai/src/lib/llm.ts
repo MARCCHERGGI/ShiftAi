@@ -131,6 +131,9 @@ async function runGeminiWithSearch(opts: WebSearchOpts): Promise<WebSearchResult
   for (const c of chunks) {
     if (c.web?.uri) groundingUrls.push(c.web.uri);
   }
+  // Gemini sometimes returns an empty candidate (safety/recitation block).
+  // Treat as failure so the router falls through to the keyless search path.
+  if (!text.trim()) throw new Error("Gemini returned empty text");
   return { text, groundingUrls, provider: "gemini" };
 }
 
