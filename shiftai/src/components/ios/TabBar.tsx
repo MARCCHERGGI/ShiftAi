@@ -43,7 +43,7 @@ export default function TabBar() {
               aria-current={active ? "page" : undefined}
               onClick={() => trackEvent("tab_nav", { tab: label.toLowerCase() })}
             >
-              <Icon size={24} strokeWidth={active ? 2.2 : 1.8} aria-hidden="true" />
+              <Icon size={24} strokeWidth={2} aria-hidden="true" />
               <span className="tabbar__label">{label}</span>
             </Link>
           );

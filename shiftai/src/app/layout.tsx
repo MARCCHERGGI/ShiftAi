@@ -50,8 +50,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // Pinch-zoom allowed (a11y). Inputs are 17px, so iOS won't auto-zoom on focus.
+  maximumScale: 5,
   viewportFit: "cover",
   themeColor: "#F2F2F7",
 };

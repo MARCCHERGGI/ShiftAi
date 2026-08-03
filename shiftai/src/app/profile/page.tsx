@@ -143,14 +143,14 @@ export default function ProfilePage() {
 
   if (!loaded) {
     return (
-      <main style={{ paddingBottom: 96 }}>
+      <main>
         <NavBar title="Profile" large />
       </main>
     );
   }
 
   return (
-    <main style={{ paddingBottom: 110 }}>
+    <main>
       <NavBar title="Profile" large />
 
       <p
@@ -158,12 +158,13 @@ export default function ProfilePage() {
           fontSize: 15,
           lineHeight: 1.4,
           color: "var(--sys-gray, #8E8E93)",
-          margin: "4px 20px 6px",
+          margin: "4px 20px 21px",
         }}
       >
         Everything here feeds your resume and interview prep. Saves as you type.
       </p>
 
+      <div style={{ display: "flex", flexDirection: "column", gap: 35, padding: "0 16px" }}>
       <InsetGroup header="Basics">
         <TextField label="Name" value={profile.name} onChange={(v) => update({ name: v })} placeholder="Marco Hergi" />
         <TextField label="Email" value={profile.email} onChange={(v) => update({ email: v })} placeholder="you@email.com" />
@@ -186,11 +187,11 @@ export default function ProfilePage() {
         />
       </InsetGroup>
 
-      <InsetGroup
-        header="Work history"
-        footer="Your most recent gigs first. Highlights become resume bullets."
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "4px 0" }}>
+      {/* Work history lives OUTSIDE an inset group — white cards on the
+          grouped background stay visible (no white-in-white nesting). */}
+      <section>
+        <div className="inset-group__header">Work history</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {profile.workHistory.map((job, i) => (
             <Card key={i}>
               <div
@@ -246,11 +247,14 @@ export default function ProfilePage() {
             </Card>
           ))}
           <PillButton onPress={addJob} variant="tinted" full>
-            <Plus size={15} strokeWidth={2.4} style={{ marginRight: 5, verticalAlign: -2 }} />
+            <Plus size={15} strokeWidth={2.4} />
             Add a job
           </PillButton>
         </div>
-      </InsetGroup>
+        <div className="inset-group__footer">
+          Your most recent gigs first. Highlights become resume bullets.
+        </div>
+      </section>
 
       <InsetGroup header="Skills & extras" footer="Separate items with commas.">
         {ARRAY_FIELDS.map((f) => (
@@ -272,6 +276,7 @@ export default function ProfilePage() {
           multiline
         />
       </InsetGroup>
+      </div>
 
       {/* Saved toast */}
       <div

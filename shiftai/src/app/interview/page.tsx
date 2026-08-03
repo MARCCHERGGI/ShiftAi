@@ -133,7 +133,7 @@ export default function InterviewPage() {
   const venueLabel = analysis?.venue?.name ?? null;
 
   return (
-    <main style={{ paddingBottom: 96 }}>
+    <main>
       <NavBar title="Interview" large />
 
       {phase !== "idle" ? <ProgressDots completed={history.length} /> : null}
@@ -209,7 +209,7 @@ export default function InterviewPage() {
                   disabled={sending || !answer.trim()}
                   loading={sending}
                 >
-                  <Send size={15} strokeWidth={2.2} style={{ marginRight: 6, verticalAlign: -2 }} />
+                  <Send size={15} strokeWidth={2.2} />
                   Send answer
                 </PillButton>
               </div>
@@ -229,7 +229,7 @@ const bubbleBase: CSSProperties = {
   maxWidth: "82%",
   padding: "10px 14px",
   borderRadius: 18,
-  fontSize: 16,
+  fontSize: 17, // iOS Messages body
   lineHeight: 1.4,
   whiteSpace: "pre-wrap",
   wordBreak: "break-word",
@@ -350,7 +350,7 @@ function FinalReport({
       : Math.round(summary.overallScore);
 
   return (
-    <section style={{ padding: "18px 16px 0" }}>
+    <section style={{ padding: "35px 16px 0" }}>
       <Card>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <ScoreRing score={ringScore} />
@@ -398,7 +398,7 @@ function FinalReport({
 
         <div style={{ marginTop: 16 }}>
           <PillButton onPress={onRestart} variant="tinted" full loading={restarting} disabled={restarting}>
-            <RotateCcw size={15} strokeWidth={2.2} style={{ marginRight: 6, verticalAlign: -2 }} />
+            <RotateCcw size={15} strokeWidth={2.2} />
             Run again
           </PillButton>
         </div>

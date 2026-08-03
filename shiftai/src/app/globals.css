@@ -68,6 +68,9 @@
   --tabbar-bg: rgba(249, 249, 249, 0.82);
   --navbar-bg: rgba(249, 249, 249, 0.82);
 
+  /* ---- App column (desktop canvas width, iPhone Pro Max) ---- */
+  --app-w: 430px;
+
   /* ============================================================
      LEGACY ALIASES — walkin.css / listings.css and the ported
      Jobs screen still reference the old Liquid Glass tokens.
@@ -265,12 +268,24 @@ svg {
 .ios-tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 
 /* ============================================================
-   PAGE FRAME
+   PAGE FRAME — single 430px app column on desktop,
+   edge-to-edge under 520px (mobile is already correct-width).
    ============================================================ */
+@media (min-width: 520px) {
+  body {
+    background: #e2e2e7; /* darker page bg so the column reads as an app canvas */
+  }
+  main {
+    max-width: var(--app-w);
+    margin: 0 auto;
+    background: var(--bg-grouped);
+    min-height: 100dvh;
+    box-shadow: 0 0 0 0.5px var(--separator-opaque), 0 0 40px rgba(0, 0, 0, 0.06);
+  }
+}
+
 .ios-page {
   width: 100%;
-  max-width: 680px;
-  margin: 0 auto;
   padding: 0 16px;
 }
 
@@ -303,12 +318,6 @@ svg {
   padding: env(safe-area-inset-top, 0px) 16px 0;
 }
 
-.navbar--large .navbar__bar {
-  min-height: 0;
-  padding-top: calc(env(safe-area-inset-top, 0px) + 18px);
-  justify-content: flex-end;
-}
-
 .navbar__title-inline {
   font-size: 17px;
   font-weight: 600;
@@ -330,11 +339,36 @@ svg {
   gap: 8px;
 }
 
-.navbar--large .navbar__right {
-  position: absolute;
-  top: auto;
-  bottom: 4px;
-  transform: none;
+/* Large-title mode: sticky 44px inline bar, title fades in on collapse.
+   Must be a direct child of <main> so sticky spans the whole page. */
+.navbar__inlinebar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: env(safe-area-inset-top, 0px) 16px 0;
+  background: transparent;
+  border-bottom: 0.5px solid transparent;
+  transition: background var(--dur-2) var(--ease-spring);
+}
+
+.navbar__inlinebar .navbar__title-inline {
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease-spring);
+}
+
+.navbar__inlinebar--visible {
+  background: var(--navbar-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom-color: var(--separator);
+}
+
+.navbar__inlinebar--visible .navbar__title-inline {
+  opacity: 1;
 }
 
 .navbar__title-large {
@@ -343,10 +377,7 @@ svg {
   letter-spacing: -0.4px;
   line-height: 41px;
   margin: 0;
-  padding: 2px 16px 10px;
-  max-width: 680px;
-  width: 100%;
-  margin-inline: auto;
+  padding: 2px 16px 8px; /* left-aligned at the 16px leading margin */
 }
 
 /* ============================================================
@@ -365,12 +396,25 @@ svg {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Clamp the bar to the app column (must come AFTER the base .tabbar rule —
+   same specificity, cascade order decides). */
+@media (min-width: 520px) {
+  .tabbar {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: var(--app-w);
+    border-left: 0.5px solid var(--separator-opaque);
+    border-right: 0.5px solid var(--separator-opaque);
+  }
+}
+
 .tabbar__inner {
   display: flex;
   align-items: stretch;
   justify-content: space-around;
   height: var(--tabbar-h);
-  max-width: 680px;
+  max-width: var(--app-w);
   margin: 0 auto;
 }
 
@@ -383,14 +427,10 @@ svg {
   justify-content: center;
   gap: 2px;
   padding-top: 5px;
-  color: #999999;
-  transition: color var(--dur-1) var(--ease-spring), transform var(--dur-1) var(--ease-spring);
+  color: var(--ios-gray); /* systemGray — the exact iOS inactive tab tint */
+  transition: color var(--dur-1) var(--ease-spring);
   -webkit-user-select: none;
   user-select: none;
-}
-
-.tabbar__item:active {
-  transform: scale(0.92);
 }
 
 .tabbar__item--active {
@@ -482,7 +522,7 @@ svg {
 }
 
 .row--press:active {
-  background: var(--ios-gray5);
+  background: var(--ios-gray4); /* systemGray4 — the iOS row highlight */
 }
 
 .row__icon {
@@ -531,7 +571,7 @@ svg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px; /* iOS icon-label spacing */
   min-height: 50px;
   padding: 13px 22px;
   border-radius: 14px;
@@ -563,6 +603,10 @@ svg {
   color: var(--ios-blue);
 }
 
+.pill-btn--tinted:active:not(:disabled) {
+  background: rgba(0, 122, 255, 0.24);
+}
+
 .pill-btn--plain {
   background: transparent;
   color: var(--ios-blue);
@@ -570,14 +614,33 @@ svg {
   padding: 11px 16px;
 }
 
+.pill-btn--plain:active:not(:disabled) {
+  opacity: 0.4; /* iOS plain buttons dim the label on press */
+}
+
 .pill-btn--full {
   width: 100%;
   display: flex;
 }
 
+/* Disabled: iOS never dims a filled button with whole-node opacity —
+   gray fill + tertiary label. Loading keeps full tint (in-flight action). */
 .pill-btn:disabled {
-  opacity: 0.4;
   cursor: default;
+}
+
+.pill-btn--filled:disabled:not(.pill-btn--loading) {
+  background: rgba(118, 118, 128, 0.12); /* quaternarySystemFill */
+  color: rgba(60, 60, 67, 0.3); /* tertiaryLabel */
+}
+
+.pill-btn--tinted:disabled:not(.pill-btn--loading) {
+  background: rgba(118, 118, 128, 0.12);
+  color: rgba(60, 60, 67, 0.3);
+}
+
+.pill-btn--plain:disabled:not(.pill-btn--loading) {
+  color: rgba(60, 60, 67, 0.3);
 }
 
 .pill-btn--loading {
@@ -597,8 +660,7 @@ svg {
 .textfield__label {
   font-size: 13px;
   letter-spacing: -0.08px;
-  text-transform: uppercase;
-  color: var(--ios-gray);
+  color: var(--ios-gray); /* sentence case — uppercase is for section headers only */
   padding-left: 4px;
 }
 
@@ -608,7 +670,7 @@ svg {
   border: 0;
   border-radius: var(--r-field);
   box-shadow: var(--shadow-card);
-  padding: 12px 14px;
+  padding: 11px 16px; /* 44px total height, leading matches list rows */
   font-size: 17px;
   letter-spacing: -0.43px;
   line-height: 22px;
@@ -629,6 +691,64 @@ svg {
 textarea.textfield__input {
   resize: none;
   min-height: 120px;
+}
+
+/* Fields nested in a white card become flat grouped-form rows —
+   no white-on-white double-carding. */
+.inset-group__card .textfield,
+.card .textfield {
+  gap: 2px;
+  padding: 8px 16px;
+}
+
+.inset-group__card .textfield + .textfield,
+.card .textfield + .textfield {
+  position: relative;
+}
+
+.inset-group__card .textfield + .textfield::before,
+.card .textfield + .textfield::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
+  height: 0.5px;
+  background: var(--separator);
+}
+
+.inset-group__card .textfield__label,
+.card .textfield__label {
+  padding-left: 0;
+  font-size: 12px;
+}
+
+.inset-group__card .textfield__input,
+.card .textfield__input {
+  box-shadow: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 4px;
+}
+
+.inset-group__card .textfield__input:focus,
+.card .textfield__input:focus {
+  box-shadow: none;
+}
+
+/* focused row indicator instead of a ring */
+.inset-group__card .textfield:focus-within .textfield__label,
+.card .textfield:focus-within .textfield__label {
+  color: var(--ios-blue);
+}
+
+/* padded cards already inset 16px — don't double-indent nested fields */
+.card--padded .textfield {
+  padding: 8px 0;
+}
+
+.card--padded .textfield + .textfield::before {
+  left: 0;
 }
 
 /* ============================================================
@@ -925,6 +1045,167 @@ textarea.textfield__input {
 .pill-btn--plain .ios-spinner {
   border-color: rgba(0, 122, 255, 0.25);
   border-top-color: var(--ios-blue);
+}
+
+/* ============================================================
+   EMPTY STATE — icon + title + description + optional action
+   ============================================================ */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 56px 32px 24px;
+}
+
+.empty__icon {
+  color: var(--ios-gray3);
+  margin-bottom: 16px;
+}
+
+.empty__title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.45px;
+  margin: 0;
+  color: var(--label);
+}
+
+.empty__desc {
+  font-size: 15px;
+  line-height: 20px;
+  letter-spacing: -0.23px;
+  margin: 6px 0 0;
+  color: var(--label-2);
+  max-width: 280px;
+}
+
+.empty__action {
+  margin-top: 16px;
+}
+
+/* ============================================================
+   SUGGESTION CHIPS (Prep idle state)
+   ============================================================ */
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px;
+  margin: 0 -2px;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  background: var(--bg-fill);
+  color: var(--label);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.23px;
+  white-space: nowrap;
+  transition: background var(--dur-1) var(--ease-spring), transform var(--dur-1) var(--ease-spring);
+}
+
+.chip::after {
+  /* extend the hit area to 44px without inflating the pill */
+  content: "";
+  position: absolute;
+  inset: -5px 0;
+}
+
+.chip:active {
+  background: var(--ios-gray4);
+  transform: scale(0.97);
+}
+
+.chip__icon {
+  display: flex;
+  color: var(--ios-blue);
+}
+
+/* ============================================================
+   INSTALL COACH — dismissible A2HS card above the tab bar
+   ============================================================ */
+.install-coach {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 12px);
+  width: min(calc(100% - 32px), calc(var(--app-w) - 32px));
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-card);
+  border-radius: 14px;
+  box-shadow: var(--shadow-float);
+  animation: ios-fade-slide var(--dur-3) var(--ease-spring) both;
+}
+
+.install-coach--closing {
+  animation: ios-fade-out var(--dur-2) var(--ease-spring) both;
+}
+
+.install-coach__glyph {
+  flex: none;
+  display: flex;
+  color: var(--ios-blue);
+}
+
+.install-coach__text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: -0.08px;
+  margin: 0;
+  color: var(--label);
+}
+
+.install-coach__text strong {
+  font-weight: 600;
+}
+
+.install-coach__install {
+  flex: none;
+  min-height: 34px;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  background: var(--ios-blue-tint);
+  color: var(--ios-blue);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.23px;
+  transition: background var(--dur-1) var(--ease-spring), transform var(--dur-1) var(--ease-spring);
+}
+
+.install-coach__install:active {
+  background: rgba(0, 122, 255, 0.24);
+  transform: scale(0.97);
+}
+
+.install-coach__close {
+  flex: none;
+  width: 44px; /* 44px hit target */
+  height: 44px;
+  margin: -8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ios-gray);
 }
 
 /* ============================================================

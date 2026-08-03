@@ -1,0 +1,110 @@
+[
+  {
+    "name": "Culinary Agents — NYC bartender search",
+    "kind": "html",
+    "urlPattern": "https://culinaryagents.com/search/jobs?search%5Bname%5D=Bartender&search%5Blocation%5D=New%20York%2C%20NY&offset={0,24,48,...}",
+    "parseRecipe": {
+      "pagination": "24 cards per page; append &offset=N (N=24,48,...); stop when a page yields 0 cards. 139 unique across offsets 0-120 on test day. Plain `page=` params are IGNORED — only `offset` works.",
+      "cardRegex": "/<a class=\"ca-single-job-card[^\"]*\" data-entity=\"([^\"]*)\"[^>]*data-jobid=\"([^\"]*)\"[^>]*data-title=\"([^\"]*)\"[^>]*href=\"([^\"]+)\"/g — groups: venueName, jobId (\"713145-821273\", job id before the dash), title, relative href",
+      "cardExtras": "within the next ~2200 chars of each card anchor: pay line /job-employment\">([^<]+)</ (e.g. \"Part Time · Hourly ($25.00 - $35.00)\"), address+cuisine line /<div class=\"text-muted text-ellipsis\">([^<]*New York, NY[^<]*)<\\/div>/, hospitality group is the FIRST text-muted div, freshness tag \"Posted today\" appears in card footer",
+      "searchPageJsonLd": "search page also embeds <script type=\"application/ld+json\"> with @type SearchResultsPage → mainEntity.numberOfItems (140 on test day) + itemListElement[].url — cleanest way to get total count + all job URLs for page 1",
+      "detailPage": "GET https://culinaryagents.com/jobs/{id}-{slug} → single <script type=\"application/ld+json\"> with a full schema.org JobPosting: title, datePosted, validThrough, employmentType, experienceRequirements, hiringOrganization.name (venue) + .url, baseSalary.value.{minValue,maxValue,unitText}, jobLocation.address.{streetAddress,addressLocality,postalCode}, jobLocation.geo.{latitude,longitude}, skills, description (HTML). One fetch = venue + pay + address + full listing text."
+    },
+    "testedAt": "2026-08-03T18:48:00Z",
+    "testedHitsTotal": 139,
+    "testedBartenderHits": 138,
+    "datacenterSafe": "unknown",
+    "refreshCadence": "daily (cards carry \"Posted today\"/\"Posted N days ago\" tags; sort is freshness-first)",
+    "notes": "THE industry-standard NYC hospitality board — Major Food Group, Boulud, USHG etc. post here rather than running their own ATS. 108/138 bartender cards had an explicit \"New York, NY\" street address (Manhattan-heavy; filter by postal 100xx for strict Manhattan). Server-rendered Rails HTML, no auth, no cookies needed. Behind Cloudflare (cf-cache-status DYNAMIC) — plain node fetch with a desktop UA passed from residential; datacenter behavior untested, so treat Vercel fetches as needs-verification and keep a UA header on every request."
+  },
+  {
+    "name": "Greenhouse ATS — 550 Madison (COTE group / Bar Chimera)",
+    "kind": "json",
+    "urlPattern": "https://boards-api.greenhouse.io/v1/boards/550/jobs",
+    "parseRecipe": {
+      "jsonPath": "jobs[] → {title, absolute_url, location.name, updated_at}; filter title with /bartend|barback|cocktail server|drink runner|bar captain|mixolog/i",
+      "locationQuirk": "location.name is literally \"550\" (not \"New York\") for most roles on this board — do NOT NY-filter this slug, the whole venue is 550 Madison Ave, Midtown Manhattan",
+      "detail": "append ?content=true for full HTML descriptions, or GET /v1/boards/550/jobs/{id}"
+    },
+    "testedAt": "2026-08-03T18:47:00Z",
+    "testedHitsTotal": 28,
+    "testedBartenderHits": 4,
+    "datacenterSafe": true,
+    "refreshCadence": "every 6-12h is plenty (ATS postings turn over slowly)",
+    "notes": "Bar roles on test day: Barback (550 Madison), Bartender (550 Madison), Cocktail Server (COTE 550), Drink Runner (550 Madison). Public CloudFront-served API, no auth, never IP-blocked."
+  },
+  {
+    "name": "Greenhouse ATS — COTE Korean Steakhouse NYC",
+    "kind": "json",
+    "urlPattern": "https://boards-api.greenhouse.io/v1/boards/cotenyc/jobs",
+    "parseRecipe": {
+      "jsonPath": "jobs[] → {title, absolute_url, location.name}; location.name = \"New York, New York, United States\"; filter title /bartend|barback/i"
+    },
+    "testedAt": "2026-08-03T18:47:00Z",
+    "testedHitsTotal": 12,
+    "testedBartenderHits": 2,
+    "datacenterSafe": true,
+    "refreshCadence": "every 6-12h",
+    "notes": "Bar roles on test day: Barback, Bartender (plus a Bar Manager). Same group as slug \"550\" — dedupe across the two boards by absolute_url."
+  },
+  {
+    "name": "Greenhouse ATS — Moss (NYC club, W 46th St)",
+    "kind": "json",
+    "urlPattern": "https://boards-api.greenhouse.io/v1/boards/mossnewyorkllc/jobs",
+    "parseRecipe": {
+      "jsonPath": "jobs[] → {title, absolute_url, location.name}; location.name carries zip (\"New York, NY 10036\")"
+    },
+    "testedAt": "2026-08-03T18:47:00Z",
+    "testedHitsTotal": 13,
+    "testedBartenderHits": 1,
+    "datacenterSafe": true,
+    "refreshCadence": "every 6-12h",
+    "notes": "1 Bartender posting (job 4118684009) on test day, Midtown 10036."
+  },
+  {
+    "name": "Greenhouse ATS — Soho House & Co (EU board, NY venues)",
+    "kind": "json",
+    "urlPattern": "https://boards-api.greenhouse.io/v1/boards/sohohouseco/jobs",
+    "parseRecipe": {
+      "jsonPath": "jobs[] → {title, absolute_url, location.name}; MUST filter location.name for /New York|Brooklyn/i — board is global (371 jobs, Berlin/London/etc.); then title /bartend|barback|bar captain/i",
+      "locationDetail": "location.name includes full street address, e.g. \"Soho House New York, 29-35 9th Ave, New York, NY 10014\""
+    },
+    "testedAt": "2026-08-03T18:47:00Z",
+    "testedHitsTotal": 371,
+    "testedBartenderHits": 2,
+    "datacenterSafe": true,
+    "refreshCadence": "every 6-12h",
+    "notes": "NY bar roles on test day: Bar Captain (Soho House New York, Meatpacking) + Seasonal Bartender (Dumbo House). absolute_url points at job-boards.eu.greenhouse.io but the US boards-api serves it fine."
+  },
+  {
+    "name": "Craigslist Manhattan food/bev/hosp — HTML search",
+    "kind": "html",
+    "urlPattern": "https://newyork.craigslist.org/search/mnh/fbh?query=bartender",
+    "parseRecipe": {
+      "listRegex": "/<li class=\"cl-static-search-result\" title=\"([^\"]*)\">\\s*<a href=\"([^\"]+)\"/g — groups: title, postUrl. Post URLs are now https://www.craigslist.org/view/d/{slug}/{base62Id} (NOT the old newyork.craigslist.org/mnh/fbh/d/{slug}/{numericId}.html the current src/lib/craigslist.ts parseIndex regex expects — that regex matched 0 links on test day and needs updating)",
+      "cardExtras": "inside each <li>: <div class=\"title\">, <div class=\"location\"> (e.g. \"Chinatown / Lit Italy\")",
+      "detailPage": "posting pages still serve <section id=\"postingbody\">, <div class=\"mapaddress\">, compensation <b> block — existing parseDetail() in src/lib/craigslist.ts keeps working once index URLs are fixed"
+    },
+    "testedAt": "2026-08-03T18:40:00Z",
+    "testedHitsTotal": 88,
+    "testedBartenderHits": 55,
+    "datacenterSafe": false,
+    "refreshCadence": "hourly-to-daily from a residential/whitelisted egress; from Vercel it 403s — degraded source, keep behind cache or proxy",
+    "notes": "Fetched fine from this residential machine with a desktop UA. Known to 403 from Vercel datacenter IPs. 55/88 results bartender-titled (mnh=Manhattan subarea, fbh=food/beverage/hospitality)."
+  },
+  {
+    "name": "Craigslist sapi JSON search API",
+    "kind": "json",
+    "urlPattern": "https://sapi.craigslist.org/web/v8/postings/search/full?batch=3-0-360-0-0&cc=US&lang=en&query=bartender&searchPath=fbh",
+    "parseRecipe": {
+      "jsonPath": "data.items[] — positional arrays mixing scalars and tagged tuples [tagId, value]: tag 6=url slug, 7=pay string (\"$17-$20hr\"), 8=venue name (\"Asia Roma\"), 12=role blurb, 13=base62 post id (build post URL as https://www.craigslist.org/view/d/{slug}/{base62Id}); last array element = full post title; element 4 is \"lat~lon\"-ish geo cluster string; data.totalResultCount for total",
+      "scope": "batch=3-0-360-0-0 → area 3 (NYC) all subareas; returned 216 items NYC-wide incl. Brooklyn — filter Manhattan by title/slug or use the HTML mnh page for strict Manhattan"
+    },
+    "testedAt": "2026-08-03T18:40:00Z",
+    "testedHitsTotal": 216,
+    "testedBartenderHits": 216,
+    "datacenterSafe": false,
+    "refreshCadence": "same as CL HTML — residential egress only; assume same datacenter blocking as craigslist.org",
+    "notes": "This is the JSON the CL SPA itself loads — includes venue name + pay hint at the INDEX level (no detail fetch needed for a headline card). All 216 items matched query=bartender in fbh. Undocumented API: treat the tuple tags defensively (verify tag ids on each parse, fall back to HTML source)."
+  }
+]

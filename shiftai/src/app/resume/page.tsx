@@ -92,7 +92,7 @@ export default function ResumePage() {
   };
 
   return (
-    <main style={{ paddingBottom: 96 }}>
+    <main>
       <NavBar title="Resume" large />
 
       {!ready ? null : !hasUsableProfile(profile) ? (
@@ -129,7 +129,7 @@ export default function ResumePage() {
                 : "Run a prep on the Prep tab first and the resume tailors itself to the venue."}
             </p>
             <PillButton onPress={() => void generate()} variant="filled" full loading={generating} disabled={generating}>
-              <Sparkles size={16} strokeWidth={2.2} style={{ marginRight: 6, verticalAlign: -2 }} />
+              <Sparkles size={16} strokeWidth={2.2} />
               {resume ? "Regenerate" : "Generate my resume"}
             </PillButton>
           </section>
@@ -140,10 +140,10 @@ export default function ResumePage() {
 
           {resume ? (
             <>
-              <section style={{ padding: "16px 16px 0" }}>
+              <section style={{ padding: "35px 16px 0" }}>
                 <ResumePreview resume={resume} profile={profile} />
               </section>
-              <section style={{ padding: "14px 16px 0" }}>
+              <section style={{ padding: "16px 16px 0" }}>
                 <PillButton
                   onPress={() => void downloadPdf()}
                   variant="tinted"
@@ -151,23 +151,20 @@ export default function ResumePage() {
                   loading={downloading}
                   disabled={downloading}
                 >
-                  <Download size={16} strokeWidth={2.2} style={{ marginRight: 6, verticalAlign: -2 }} />
+                  <Download size={16} strokeWidth={2.2} />
                   Download PDF
                 </PillButton>
               </section>
             </>
           ) : !generating ? (
-            <section style={{ padding: "16px 16px 0" }}>
-              <Card>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <FileText size={20} strokeWidth={2} color="var(--sys-gray, #8E8E93)" />
-                  <p style={{ fontSize: 15, margin: 0, color: "var(--sys-gray, #8E8E93)" }}>
-                    Your one-page resume shows up here — quantified bullets, ATS-friendly,
-                    print-ready.
-                  </p>
-                </div>
-              </Card>
-            </section>
+            <div className="empty">
+              <FileText size={56} strokeWidth={1.5} className="empty__icon" />
+              <h3 className="empty__title">No resume yet</h3>
+              <p className="empty__desc">
+                Generate builds a one-page, ATS-friendly resume from your profile —
+                tailored to the venue when you&rsquo;ve run a prep.
+              </p>
+            </div>
           ) : null}
         </>
       )}

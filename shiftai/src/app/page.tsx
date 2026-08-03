@@ -18,13 +18,17 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
+  Beer,
   BookOpen,
   ConciergeBell,
   FileText,
+  Hotel,
   Link2,
   Martini,
   MessageCircle,
   Mic,
+  Search,
+  Sun,
   ThumbsDown,
   ThumbsUp,
   UserRound,
@@ -55,6 +59,7 @@ import TextField from "@/src/components/ios/TextField";
 import SegmentedControl from "@/src/components/ios/SegmentedControl";
 import CrewProgress from "@/src/components/ios/CrewProgress";
 import ScoreRing from "@/src/components/ios/ScoreRing";
+import InstallCoach from "@/src/components/ios/InstallCoach";
 
 /* ── crew step definitions ───────────────────────── */
 
@@ -82,6 +87,30 @@ function freshStatuses(): StatusMap {
 
 const MODES = ["Link", "Paste text"];
 
+/* Venue-type examples — tapping one fills a realistic sample listing. */
+const SAMPLES: { label: string; icon: ReactNode; text: string }[] = [
+  {
+    label: "Cocktail bar",
+    icon: <Martini size={15} strokeWidth={2} />,
+    text: "Bartender wanted — craft cocktail bar, East Village. High-volume weekend shifts, 2+ years cocktail experience. Knowledge of classics + batching required. Walk-ins Tue-Thu 2-4pm at 1st Ave & E 7th St. $12/hr + tips, averages $45-60/hr all-in.",
+  },
+  {
+    label: "Rooftop",
+    icon: <Sun size={15} strokeWidth={2} />,
+    text: "Rooftop lounge in Midtown hiring bartenders for the season. Bottle service + frozen program, 300+ cover nights. TIPS certified required. Stop by Mon 3-5pm, W 40th St entrance, ask for the beverage director.",
+  },
+  {
+    label: "Dive bar",
+    icon: <Beer size={15} strokeWidth={2} />,
+    text: "Neighborhood dive on the Lower East Side needs a night bartender. Shot-and-beer crowd, jukebox, cash-heavy. No cocktail list — fast hands and thick skin. Two shifts to start. Come by after 8pm, ask for Danny.",
+  },
+  {
+    label: "Hotel bar",
+    icon: <Hotel size={15} strokeWidth={2} />,
+    text: "SoHo boutique hotel seeks lobby bar bartender. Classic cocktails, wine knowledge, hospitality-first service. Union position, benefits after 90 days. Apply in person weekdays 10am-12pm, HR entrance on Crosby St.",
+  },
+];
+
 /* ── page (Suspense boundary for useSearchParams — Next 15) ── */
 
 export default function PrepPage() {
@@ -103,16 +132,14 @@ function PrepScreen() {
   const [running, setRunning] = useState(false);
   const [statuses, setStatuses] = useState<StatusMap>(freshStatuses);
   const [result, setResult] = useState<AnalyzeResult | null>(null);
+  const [saved, setSaved] = useState<AnalyzeResult | null>(null);
   const [restored, setRestored] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Restore the last analysis so Resume / Interview flows stay warm.
+  // Surface the last analysis as a compact "Recent" card in the idle state
+  // (Resume / Interview flows stay warm off localStorage regardless).
   useEffect(() => {
-    const last = loadAnalysis();
-    if (last) {
-      setResult(last);
-      setRestored(true);
-    }
+    setSaved(loadAnalysis());
   }, []);
 
   const handleEvent = useCallback((e: CrewEvent) => {
@@ -136,6 +163,7 @@ function PrepScreen() {
         const analysis = await runCrew(input, handleEvent);
         saveAnalysis(analysis);
         setResult(analysis);
+        setSaved(analysis);
         trackEvent("crew_complete", {
           fit: analysis.synthesis.fitScore,
           venue: analysis.venue?.name ?? null,
@@ -173,9 +201,22 @@ function PrepScreen() {
   };
 
   const steps = AGENT_STEPS.map((s) => ({ ...s, status: statuses[s.key] }));
+  const idle = !running && !result && !error;
+
+  const fillSample = (sample: (typeof SAMPLES)[number]) => {
+    setMode("Paste text");
+    setText(sample.text);
+    trackEvent("sample_fill", { venue_type: sample.label.toLowerCase() });
+  };
+
+  const openSaved = () => {
+    if (!saved) return;
+    setResult(saved);
+    setRestored(true);
+  };
 
   return (
-    <main style={{ paddingBottom: 96 }}>
+    <main>
       <NavBar title="Prep" large />
 
       <section style={{ padding: "0 16px" }}>
@@ -217,6 +258,63 @@ function PrepScreen() {
         </div>
       </section>
 
+      {idle ? (
+        <>
+          <section style={{ padding: "21px 16px 0" }}>
+            <div className="chips">
+              {SAMPLES.map((sample) => (
+                <button
+                  key={sample.label}
+                  type="button"
+                  className="chip"
+                  onClick={() => fillSample(sample)}
+                >
+                  <span className="chip__icon">{sample.icon}</span>
+                  {sample.label}
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: 13, color: "var(--sys-gray, #8E8E93)", margin: "8px 4px 0" }}>
+              No link handy? Tap a venue type to try a sample listing.
+            </p>
+          </section>
+
+          {saved ? (
+            <section style={{ padding: "35px 16px 0" }}>
+              <InsetGroup header="Recent">
+                <Row
+                  icon={<Martini size={17} strokeWidth={2} color="#007AFF" />}
+                  label={saved.venue?.name ?? saved.job.title ?? "Your last prep"}
+                  value={`Fit ${saved.synthesis.fitScore}`}
+                  chevron
+                  onPress={openSaved}
+                />
+              </InsetGroup>
+            </section>
+          ) : null}
+
+          <section style={{ padding: "35px 16px 0" }}>
+            <InsetGroup
+              header="How it works"
+              footer="Six agents, ~40 seconds. Your walk-in play saves on this phone."
+            >
+              <Row
+                icon={<Link2 size={17} strokeWidth={2} color="#007AFF" />}
+                label="Paste any bartender job link"
+              />
+              <Row
+                icon={<Search size={17} strokeWidth={2} color="#FF9500" />}
+                label="The crew researches the venue live"
+              />
+              <Row
+                icon={<FileText size={17} strokeWidth={2} color="#AF52DE" />}
+                label="Walk in with a plan, resume, and answers"
+              />
+            </InsetGroup>
+          </section>
+        </>
+      ) : null}
+
       {running ? (
         <section style={{ padding: "16px 16px 0" }}>
           <Card>
@@ -250,6 +348,8 @@ function PrepScreen() {
           onInterview={() => router.push("/interview")}
         />
       ) : null}
+
+      <InstallCoach />
     </main>
   );
 }
@@ -274,8 +374,7 @@ function ResultView({
           style={{
             fontSize: 13,
             color: "var(--sys-gray, #8E8E93)",
-            textAlign: "center",
-            margin: "18px 16px 0",
+            margin: "16px 20px 0",
           }}
         >
           Your last prep, saved{" "}
@@ -295,13 +394,13 @@ function ResultView({
 
       <SynthesisCard synthesis={result.synthesis} />
 
-      <section style={{ padding: "8px 16px 0", display: "flex", flexDirection: "column", gap: 10 }}>
+      <section style={{ padding: "16px 16px 0", display: "flex", flexDirection: "column", gap: 10 }}>
         <PillButton onPress={onResume} variant="filled" full>
-          <FileText size={17} strokeWidth={2.2} style={{ marginRight: 6, verticalAlign: -3 }} />
+          <FileText size={17} strokeWidth={2.2} />
           Build my resume for this job
         </PillButton>
         <PillButton onPress={onInterview} variant="tinted" full>
-          <Mic size={17} strokeWidth={2.2} style={{ marginRight: 6, verticalAlign: -3 }} />
+          <Mic size={17} strokeWidth={2.2} />
           Practice the interview
         </PillButton>
       </section>
@@ -389,7 +488,7 @@ function itemRows(items: string[], icon: ReactNode, prefix: string) {
 
 function MenuGroup({ menu }: { menu: MenuIntel }) {
   return (
-    <section style={{ paddingTop: 16 }}>
+    <section style={{ padding: "35px 16px 0" }}>
       <InsetGroup header="Menu intel" footer={menu.summary || undefined}>
         {itemRows(menu.signatureItems, <UtensilsCrossed size={17} strokeWidth={2} color="#FF9500" />, "sig")}
         {itemRows(menu.cocktails, <Martini size={17} strokeWidth={2} color="#AF52DE" />, "ckt")}
@@ -401,7 +500,7 @@ function MenuGroup({ menu }: { menu: MenuIntel }) {
 
 function PeopleGroup({ people }: { people: PeopleIntel }) {
   return (
-    <section style={{ paddingTop: 8 }}>
+    <section style={{ padding: "35px 16px 0" }}>
       <InsetGroup header="The people" footer={people.summary || undefined}>
         {itemRows(
           [...people.owners, ...people.management],
@@ -424,7 +523,7 @@ function PeopleGroup({ people }: { people: PeopleIntel }) {
 function ReviewsGroup({ reviews }: { reviews: ReviewIntel }) {
   const footer = [reviews.rating, reviews.summary].filter(Boolean).join(" — ") || undefined;
   return (
-    <section style={{ paddingTop: 8 }}>
+    <section style={{ padding: "35px 16px 0" }}>
       <InsetGroup header="What guests say" footer={footer}>
         {itemRows(reviews.praise, <ThumbsUp size={17} strokeWidth={2} color="#34C759" />, "pra")}
         {itemRows(reviews.complaints, <ThumbsDown size={17} strokeWidth={2} color="#FF3B30" />, "com")}
@@ -461,7 +560,7 @@ function SynthesisCard({ synthesis }: { synthesis: Synthesis }) {
   );
 
   return (
-    <section style={{ padding: "16px 16px 8px" }}>
+    <section style={{ padding: "35px 16px 0" }}>
       <Card>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <ScoreRing score={synthesis.fitScore} />

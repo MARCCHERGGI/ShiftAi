@@ -1,46 +1,53 @@
 "use client";
 
 /**
- * Jobs — verified Craigslist Manhattan bartender listings.
- * Ported from the old home screen, restyled iOS. Each listing gets
- * "Prep this job" → /?url=<listing url> which auto-runs the agent crew.
+ * Jobs — fresh Manhattan bartender openings aggregated from Culinary
+ * Agents, hospitality-group boards, and Craigslist (scam-filtered) via
+ * GET /api/jobs. Grouped by borough, Manhattan first. Each posting gets
+ * "Prep this job" → /?url=<posting url> which auto-runs the agent crew.
  */
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowUpRight,
-  Check,
   Clock,
   Loader2,
   MapPin,
+  Martini,
   RefreshCw,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
 
-import type { VerifiedListing } from "@/src/lib/craigslist";
+import type { JobPosting, JobsResponse } from "@/src/lib/jobs/types";
 import { trackEvent } from "@/src/lib/track";
 
 import NavBar from "@/src/components/ios/NavBar";
 import Card from "@/src/components/ios/Card";
 import PillButton from "@/src/components/ios/PillButton";
 
-interface ApiResp {
-  ok: boolean;
-  fetchedAt?: string;
-  ageMs?: number | null;
-  totalIndexed?: number;
-  totalReal?: number;
-  totalScams?: number;
-  listings?: VerifiedListing[];
-  error?: string;
+const GRAY = "var(--ios-gray, #8E8E93)";
+
+/* Source slugs → human labels (both Craigslist lanes merge into one chip). */
+const SOURCE_LABELS: Record<string, string> = {
+  "culinary-agents": "Culinary Agents",
+  greenhouse: "Hospitality groups",
+  craigslist: "Craigslist",
+  "craigslist-sapi": "Craigslist",
+};
+
+function sourceLabel(slug: string): string {
+  return (
+    SOURCE_LABELS[slug] ??
+    slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
 }
 
 export default function JobsPage() {
   const router = useRouter();
 
-  const [data, setData] = useState<ApiResp | null>(null);
+  const [data, setData] = useState<JobsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -48,17 +55,16 @@ export default function JobsPage() {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch("/api/listings", { cache: "no-store" });
-      const j = (await res.json()) as ApiResp;
-      if (!j.ok) throw new Error(j.error ?? "load failed");
+      const res = await fetch("/api/jobs", { cache: "no-store" });
+      const j = (await res.json()) as JobsResponse;
+      if (!j.ok) throw new Error("Job boards didn't answer — try again in a minute.");
       setData(j);
-      trackEvent("listings_loaded", {
-        total: j.totalReal ?? 0,
-        scams: j.totalScams ?? 0,
-        cached: (j.ageMs ?? 0) > 5000,
+      trackEvent("jobs_loaded", {
+        total: j.jobs.length,
+        sources: j.sources.filter((s) => s.ok).length,
       });
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "load failed");
+      setErr(e instanceof Error ? e.message : "Job boards didn't answer — try again in a minute.");
     } finally {
       setLoading(false);
     }
@@ -68,18 +74,34 @@ export default function JobsPage() {
     void load();
   }, [load]);
 
-  const listings = data?.listings ?? [];
+  const jobs = useMemo(() => data?.jobs ?? [], [data]);
+
+  // Group by borough, Manhattan first, then by posting count.
+  const boroughs = useMemo(() => {
+    const groups = new Map<string, JobPosting[]>();
+    for (const job of jobs) {
+      const key = job.borough || "New York";
+      const bucket = groups.get(key);
+      if (bucket) bucket.push(job);
+      else groups.set(key, [job]);
+    }
+    return [...groups.entries()].sort(([a, aJobs], [b, bJobs]) => {
+      if (a === "Manhattan") return -1;
+      if (b === "Manhattan") return 1;
+      return bJobs.length - aJobs.length;
+    });
+  }, [jobs]);
 
   const prepJob = useCallback(
-    (listing: VerifiedListing) => {
-      trackEvent("listing_prep", { post_id: listing.postId });
-      router.push("/?url=" + encodeURIComponent(listing.url));
+    (job: JobPosting) => {
+      trackEvent("listing_prep", { job_id: job.id, source: job.source });
+      router.push("/?url=" + encodeURIComponent(job.url));
     },
     [router],
   );
 
   return (
-    <main style={{ paddingBottom: 96 }}>
+    <main>
       <NavBar
         title="Jobs"
         large
@@ -87,7 +109,7 @@ export default function JobsPage() {
           <button
             type="button"
             onClick={() => void load()}
-            aria-label="Refresh listings"
+            aria-label="Refresh openings"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -100,155 +122,205 @@ export default function JobsPage() {
               cursor: "pointer",
             }}
           >
-            <RefreshCw size={19} strokeWidth={2.2} />
+            <RefreshCw
+              size={19}
+              strokeWidth={2}
+              style={loading ? { animation: "ios-spin 1s linear infinite" } : undefined}
+            />
           </button>
         }
       />
 
       <section style={{ padding: "0 16px" }}>
-        <p
-          style={{
-            fontSize: 15,
-            lineHeight: 1.4,
-            color: "var(--sys-gray, #8E8E93)",
-            margin: "4px 4px 10px",
-          }}
-        >
-          Real walk-in bartender openings, pulled live from Craigslist Manhattan. Scams
-          filtered out — every one has an address, a walk-in time, or a real venue.
+        <p style={{ fontSize: 15, lineHeight: 1.4, color: GRAY, margin: "4px 4px 10px" }}>
+          Fresh Manhattan bartender openings from Culinary Agents, hospitality-group
+          boards, and Craigslist, scam-filtered.
         </p>
-        <MetaRow loading={loading} data={data} err={err} />
+        <SourceChips data={data} loading={loading} err={err} />
       </section>
 
-      <section style={{ padding: "12px 16px 0", display: "flex", flexDirection: "column", gap: 14 }}>
+      <section style={{ padding: "16px 16px 0", display: "flex", flexDirection: "column", gap: 14 }}>
         {loading && !data ? <FirstLoad /> : null}
 
         {err ? (
           <Card>
             <h3 style={{ fontSize: 17, fontWeight: 600, margin: "0 0 6px", color: "#FF3B30" }}>
-              Couldn&rsquo;t fetch listings
+              Couldn&rsquo;t fetch openings
             </h3>
-            <p style={{ fontSize: 15, margin: "0 0 12px", color: "var(--sys-gray, #8E8E93)" }}>{err}</p>
+            <p style={{ fontSize: 15, margin: "0 0 12px", color: GRAY }}>{err}</p>
             <PillButton onPress={() => void load()} variant="tinted">
               Try again
             </PillButton>
           </Card>
         ) : null}
 
-        {!loading && !err && listings.length === 0 ? (
-          <Card>
-            <p style={{ fontSize: 16, fontWeight: 600, margin: "0 0 4px" }}>
-              No verified bartender listings in this hour.
+        {!loading && !err && jobs.length === 0 ? (
+          <div className="empty">
+            <Martini size={56} strokeWidth={1.5} className="empty__icon" />
+            <h3 className="empty__title">No verified openings right now</h3>
+            <p className="empty__desc">
+              The boards re-scan hourly. Every listing that passes the scam filter
+              shows up here.
             </p>
-            <p style={{ fontSize: 14, margin: 0, color: "var(--sys-gray, #8E8E93)" }}>
-              Hit refresh in 20 minutes — we re-scrape Craigslist hourly.
-            </p>
-          </Card>
+            <div className="empty__action">
+              <PillButton onPress={() => void load()} variant="tinted">
+                Refresh now
+              </PillButton>
+            </div>
+          </div>
         ) : null}
-
-        {listings.map((l) => (
-          <ListingCard key={l.postId} listing={l} onPrep={() => prepJob(l)} />
-        ))}
       </section>
 
-      <footer
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 6,
-          padding: "20px 24px 8px",
-          fontSize: 12,
-          lineHeight: 1.45,
-          color: "var(--sys-gray, #8E8E93)",
-        }}
-      >
-        <ShieldCheck size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} />
-        <span>
-          Source: Craigslist Manhattan food/bev/hospitality. AI scam filter blocks: fee asks,
-          ID/bank requests, off-platform redirects, unrealistic pay.
-        </span>
-      </footer>
+      {boroughs.map(([borough, boroughJobs], i) => (
+        <section
+          key={borough}
+          style={{ padding: i === 0 ? "21px 16px 0" : "35px 16px 0" }}
+        >
+          <h2
+            style={{
+              fontSize: 13,
+              fontWeight: 400,
+              letterSpacing: "-0.08px",
+              textTransform: "uppercase",
+              color: GRAY,
+              margin: 0,
+              padding: "0 16px 7px",
+            }}
+          >
+            {borough} · {boroughJobs.length}
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {boroughJobs.map((job) => (
+              <JobCard key={job.id} job={job} onPrep={() => prepJob(job)} />
+            ))}
+          </div>
+        </section>
+      ))}
 
+      {jobs.length > 0 || (!loading && !err) ? (
+        <footer
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 6,
+            padding: "20px 24px 8px",
+            fontSize: 12,
+            lineHeight: 1.45,
+            color: GRAY,
+          }}
+        >
+          <ShieldCheck size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} />
+          <span>
+            Sources: Culinary Agents, hospitality-group career boards, Craigslist
+            Manhattan food/bev. AI scam filter blocks: fee asks, ID/bank requests,
+            off-platform redirects, unrealistic pay.
+          </span>
+        </footer>
+      ) : null}
     </main>
   );
 }
 
-/* ── meta row ────────────────────────────────────── */
+/* ── source chips + refreshed time ───────────────── */
 
-function MetaRow({
-  loading,
+function relTime(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return null;
+  const mins = Math.round((Date.now() - t) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
+
+function SourceChips({
   data,
+  loading,
   err,
 }: {
+  data: JobsResponse | null;
   loading: boolean;
-  data: ApiResp | null;
   err: string | null;
 }) {
   if (err) return null;
-  const base: CSSProperties = {
+
+  const wrap: CSSProperties = {
     display: "flex",
     alignItems: "center",
     flexWrap: "wrap",
     gap: 6,
     fontSize: 13,
-    color: "var(--sys-gray, #8E8E93)",
+    color: GRAY,
     margin: "0 4px",
   };
+
   if (!data) {
     return (
-      <p style={base}>
-        <Loader2 size={12} strokeWidth={2.2} style={{ animation: "spin 1s linear infinite" }} />
-        <span>{loading ? "Pulling latest from Craigslist…" : ""}</span>
+      <p style={wrap}>
+        <Loader2 size={12} strokeWidth={2.2} style={{ animation: "ios-spin 1s linear infinite" }} />
+        <span>{loading ? "Scanning the boards…" : ""}</span>
       </p>
     );
   }
-  const ageMin = Math.max(1, Math.round((data.ageMs ?? 0) / 60000));
-  const refreshedLabel = (data.ageMs ?? 0) < 5000 ? "just now" : `${ageMin} min ago`;
+
+  const refreshed = relTime(data.fetchedAt);
+
+  // Merge sources that share a display label (the two Craigslist lanes).
+  const chips = new Map<string, { count: number; ok: boolean }>();
+  for (const s of data.sources) {
+    const label = sourceLabel(s.name);
+    const prev = chips.get(label);
+    chips.set(label, {
+      count: (prev?.count ?? 0) + s.count,
+      ok: (prev?.ok ?? false) || s.ok,
+    });
+  }
+
   return (
-    <p style={base}>
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          padding: "3px 8px",
-          borderRadius: 999,
-          background: "rgba(52,199,89,0.14)",
-          color: "#248A3D",
-          fontWeight: 600,
-        }}
-      >
-        <Check size={12} strokeWidth={3} />
-        {data.totalReal ?? 0} verified
-      </span>
-      <span>·</span>
-      <span>
-        {data.totalScams ?? 0} scam{(data.totalScams ?? 0) === 1 ? "" : "s"} filtered out
-      </span>
-      <span>·</span>
-      <span>refreshed {refreshedLabel}</span>
-    </p>
+    <div style={wrap}>
+      {[...chips.entries()].map(([label, s]) => (
+        <span
+          key={label}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            padding: "3px 9px",
+            borderRadius: 999,
+            background: s.ok ? "rgba(0,122,255,0.12)" : "var(--bg-fill)",
+            color: s.ok ? "#007AFF" : GRAY,
+            fontWeight: 600,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {label} · {s.ok ? s.count : "—"}
+        </span>
+      ))}
+      {refreshed ? (
+        <span style={{ whiteSpace: "nowrap" }}>refreshed {refreshed}</span>
+      ) : null}
+    </div>
   );
 }
 
-/* ── listing card ────────────────────────────────── */
+/* ── posting card ────────────────────────────────── */
 
-function ListingCard({
-  listing,
-  onPrep,
-}: {
-  listing: VerifiedListing;
-  onPrep: () => void;
-}) {
-  const headingText = listing.venueName || listing.title || "Manhattan venue";
+function JobCard({ job, onPrep }: { job: JobPosting; onPrep: () => void }) {
+  const heading = job.venueName || job.title;
+  const showTitle = !!job.venueName && job.title !== job.venueName;
+  const posted = relTime(job.postedAt);
+
   const sub: CSSProperties = {
     display: "flex",
     alignItems: "center",
     gap: 6,
     fontSize: 14,
-    color: "var(--sys-gray, #8E8E93)",
+    color: GRAY,
     margin: "0 0 4px",
   };
+
   return (
     <Card>
       <header
@@ -257,54 +329,90 @@ function ListingCard({
           alignItems: "baseline",
           justifyContent: "space-between",
           gap: 10,
-          marginBottom: 6,
+          marginBottom: 2,
         }}
       >
         <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: "-0.01em" }}>
-          {headingText}
+          {heading}
         </h3>
-        {listing.payHint ? (
+        {job.pay ? (
           <span style={{ fontSize: 14, fontWeight: 600, color: "#248A3D", whiteSpace: "nowrap" }}>
-            {listing.payHint}
+            {job.pay}
           </span>
         ) : null}
       </header>
 
-      {listing.address ? (
+      {showTitle ? (
+        <p style={{ fontSize: 15, fontWeight: 500, margin: "0 0 4px", color: "var(--label-2)" }}>
+          {job.title}
+        </p>
+      ) : null}
+
+      {job.neighborhood || job.address ? (
         <p style={sub}>
           <MapPin size={14} strokeWidth={2} style={{ flexShrink: 0 }} />
-          <span>
-            {listing.address}
-            {listing.neighborhood ? ` · ${listing.neighborhood}` : ""}
-          </span>
+          <span>{[job.neighborhood, job.address].filter(Boolean).join(" · ")}</span>
         </p>
       ) : null}
 
-      {listing.walkInWindow ? (
+      {job.schedule ? (
         <p style={{ ...sub, color: "#007AFF", fontWeight: 600 }}>
-          <Clock size={14} strokeWidth={2.2} style={{ flexShrink: 0 }} />
-          <span>{listing.walkInWindow}</span>
+          <Clock size={14} strokeWidth={2} style={{ flexShrink: 0 }} />
+          <span>{job.schedule}</span>
         </p>
       ) : null}
 
-      <p style={{ fontSize: 15, lineHeight: 1.45, margin: "8px 0" }}>{listing.bodyExcerpt}</p>
-
-      {listing.whatToBring ? (
-        <p style={{ fontSize: 13, margin: "0 0 8px", color: "var(--sys-gray, #8E8E93)" }}>
-          Bring: {listing.whatToBring}
-        </p>
+      {job.summary ? (
+        <p style={{ fontSize: 15, lineHeight: 1.45, margin: "8px 0" }}>{job.summary}</p>
       ) : null}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, margin: "2px 0 8px" }}>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "3px 9px",
+            borderRadius: 999,
+            background: "var(--bg-fill)",
+            color: "var(--label-2)",
+            fontSize: 12,
+            fontWeight: 500,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {sourceLabel(job.source)}
+        </span>
+        {posted ? <span style={{ fontSize: 12, color: GRAY }}>{posted}</span> : null}
+        {job.tags.slice(0, 3).map((tag) => (
+          <span
+            key={tag}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              padding: "3px 9px",
+              borderRadius: 999,
+              background: "rgba(0,122,255,0.12)",
+              color: "#007AFF",
+              fontSize: 12,
+              fontWeight: 500,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <PillButton onPress={onPrep} variant="filled">
-          <Sparkles size={15} strokeWidth={2.2} style={{ marginRight: 5, verticalAlign: -2 }} />
+          <Sparkles size={15} strokeWidth={2.2} />
           Prep this job
         </PillButton>
         <a
-          href={listing.url}
+          href={job.url}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => trackEvent("listing_click", { post_id: listing.postId })}
+          onClick={() => trackEvent("listing_click", { job_id: job.id, source: job.source })}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -316,7 +424,7 @@ function ListingCard({
             padding: "8px 4px",
           }}
         >
-          View on Craigslist
+          View listing
           <ArrowUpRight size={14} strokeWidth={2.4} />
         </a>
       </div>
@@ -324,7 +432,7 @@ function ListingCard({
   );
 }
 
-/* ── first load (cold scrape can take 15-30s) ────── */
+/* ── first load (cold scan can take a while) ─────── */
 
 function FirstLoad() {
   const row: CSSProperties = {
@@ -341,22 +449,21 @@ function FirstLoad() {
           size={16}
           strokeWidth={2.4}
           color="#007AFF"
-          style={{ animation: "spin 1s linear infinite" }}
+          style={{ animation: "ios-spin 1s linear infinite" }}
         />
-        <span>Pulling Manhattan bartender posts from Craigslist</span>
+        <span>Scanning Culinary Agents, group boards, and Craigslist</span>
       </div>
-      <div style={{ ...row, color: "var(--sys-gray, #8E8E93)" }}>
+      <div style={{ ...row, color: GRAY }}>
         <span style={{ width: 16 }} />
         <span>Filtering scams</span>
       </div>
-      <div style={{ ...row, color: "var(--sys-gray, #8E8E93)" }}>
+      <div style={{ ...row, color: GRAY }}>
         <span style={{ width: 16 }} />
-        <span>Extracting addresses + walk-in times</span>
+        <span>Extracting venues, pay, and schedules</span>
       </div>
-      <p style={{ fontSize: 13, margin: "8px 0 0", color: "var(--sys-gray, #8E8E93)" }}>
+      <p style={{ fontSize: 13, margin: "8px 0 0", color: GRAY }}>
         First load takes ~30s. Cached after that.
       </p>
     </Card>
   );
 }
-

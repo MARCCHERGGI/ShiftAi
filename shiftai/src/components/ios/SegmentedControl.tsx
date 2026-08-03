@@ -11,7 +11,7 @@ export default function SegmentedControl({ options, value, onChange }: Segmented
   const activeIndex = Math.max(options.indexOf(value), 0);
 
   return (
-    <div className="seg" role="tablist" aria-label="Options">
+    <div className="seg" role="radiogroup" aria-label="Options">
       <div
         className="seg__thumb"
         style={{
@@ -26,8 +26,8 @@ export default function SegmentedControl({ options, value, onChange }: Segmented
           <button
             key={option}
             type="button"
-            role="tab"
-            aria-selected={active}
+            role="radio"
+            aria-checked={active}
             className={active ? "seg__option seg__option--active" : "seg__option"}
             onClick={() => {
               if (!active) onChange(option);
