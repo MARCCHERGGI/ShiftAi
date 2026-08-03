@@ -1,0 +1,37 @@
+{
+  "name": "shiftai",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.48.1",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
+    "get-stream": "^9.0.1",
+    "lucide-react": "^0.476.0",
+    "next": "^15.1.7",
+    "openai": "^4.104.0",
+    "pdfkit": "^0.17.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-icons": "^5.6.0",
+    "sharp": "^0.33.5",
+    "typescript": "^5.7.3"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
+    "@types/get-stream": "^3.0.1",
+    "@types/react": "^19.0.10",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.2"
+  }
+}
