@@ -1140,8 +1140,11 @@ textarea.textfield__input {
    ============================================================ */
 .install-coach {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
+  /* Centered via inset+margin, NOT transform — the entry animation animates
+     transform and would clobber a translateX(-50%) centering. */
+  left: 0;
+  right: 0;
+  margin-inline: auto;
   bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 12px);
   width: min(calc(100% - 32px), calc(var(--app-w) - 32px));
   z-index: 60;
